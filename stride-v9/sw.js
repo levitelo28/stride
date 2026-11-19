@@ -1,4 +1,4 @@
-const CACHE='stride-v4-marathon-build-20261118';
+const CACHE='stride-v6-ice-bath-log-20261119';
 const ASSETS=['./','./index.html','./style.css','./refined.css','./cloud-config.js','./cloud.js','./app.js','./seed.js','./icon.svg','./manifest.webmanifest'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
