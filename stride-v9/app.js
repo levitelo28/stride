@@ -1,10 +1,22 @@
 (()=>{'use strict';
 const RACE='2027-03-07', START='2026-11-16', STORAGE='stride-v1';
 const WEEKS=[
- ['2026-11-16',0,1.8641,4.35],['2026-11-23',3,2,6],['2026-11-30',3,3,7],['2026-12-07',3,3,6],
- ['2026-12-14',4,3,8],['2026-12-21',4,3,9],['2026-12-28',3,3,7],['2027-01-04',4,4,10],
- ['2027-01-11',4,4,11],['2027-01-18',4,3,8],['2027-01-25',5,4,12],['2027-02-01',5,4,13],
- ['2027-02-08',5,4,15],['2027-02-15',4,3,10],['2027-02-22',3,3,7],['2027-03-01',3,2,26.2]
+ ['2026-11-16',0.00000000,1.86411358,4.34959835],
+ ['2026-11-23',3.10685596,2.48548477,5.59234073],
+ ['2026-11-30',3.72822715,3.10685596,6.83508311],
+ ['2026-12-07',3.10685596,2.48548477,4.97096954],
+ ['2026-12-14',4.34959835,3.10685596,8.07782550],
+ ['2026-12-21',4.97096954,3.72822715,8.69919669],
+ ['2026-12-28',4.97096954,3.72822715,9.94193908],
+ ['2027-01-04',3.72822715,3.10685596,7.45645431],
+ ['2027-01-11',5.59234073,4.34959835,11.18468146],
+ ['2027-01-18',6.21371192,4.34959835,12.42742384],
+ ['2027-01-25',6.21371192,4.97096954,13.67016623],
+ ['2027-02-01',4.97096954,3.72822715,9.94193908],
+ ['2027-02-08',6.83508311,4.97096954,16.15565100],
+ ['2027-02-15',4.97096954,3.72822715,11.18468146],
+ ['2027-02-22',3.72822715,2.48548477,6.21371192],
+ ['2027-03-01',3.10685596,1.86411358,26.22186431]
 ];
 const EXERCISES={
  gymA:[
@@ -45,6 +57,7 @@ const FOOD={
 const stateDefault={completed:{},runLogs:[],gymLogs:{},food:[],sleep:[],healthRuns:[],healthSleep:[],healthSyncedAt:null,selectedDate:null,selectedView:'today',prefs:{bedtime:'22:30',wake:'06:30',diet:'kosher-friendly',goal:'Finish strong; 3:30 stretch goal'}};
 let saved={};try{saved=JSON.parse(localStorage.getItem(STORAGE)||'{}')}catch(e){}
 const s={...stateDefault,...saved,prefs:{...stateDefault.prefs,...(saved.prefs||{})}};
+let trainingOverrides={}; // Loaded read-only from the private Supabase training schedule; never added to account snapshot.
 const seed=Array.isArray(window.STRAVA_SEED)?window.STRAVA_SEED:[];
 const $=id=>document.getElementById(id), esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const parse=d=>new Date(d+'T12:00:00'); const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const today=()=>iso(new Date());
@@ -68,6 +81,7 @@ const weekFor=d=>WEEKS[weekIndex(d)]||null;
 function workoutFor(d){if(d>RACE)return{type:'rest',label:'Post-race recovery',icon:'🌿',kind:'rest'};let wd=dayOfWeek(d), week=weekFor(d);if(d===RACE)return {type:'race',label:'Race day',miles:26.2,icon:'🏁',kind:'long'};
  if(d==='2026-11-16'&&runsOn(d).length)return {type:'run',label:'Monday run (completed)',miles:runsOn(d)[0].distance,icon:'✅',kind:'run'};
  if(!week)return{type:'rest',label:'Recovery / unscheduled day',icon:'🌿',kind:'rest'};
+ const override=trainingOverrides[d]; if(override){const type=override.activity==='Race day'?'race':override.activity==='Long easy run'?'long':'run';return {type,label:override.activity,miles:Number(override.planned_km)/1.609344,icon:type==='race'?'🏁':'🏃',kind:type==='race'||type==='long'?'long':'run',instructions:override.instructions||''};}
  if(wd===0)return{type:'long',label:'Long easy run',miles:week[3],icon:'🏃',kind:'long'};
  if(wd===3&&week[1]===0)return{type:'rest',label:'Recovery after Monday’s completed run',icon:'🌿',kind:'rest'};
  if(wd===3)return{type:'run',label:'Easy run',miles:week[1],icon:'🏃',kind:'run'};
@@ -122,8 +136,8 @@ function renderToday(){
  </div>`;
 }
 function task(type,icon,label,description,done){return `<div class="task-row"><span class="task-icon">${icon}</span><div class="task-body"><strong>${esc(label)}</strong><small>${esc(description)}</small></div><button data-action="${type==='workout'?'workout':type==='mobility'?'mobility':type==='food'?'add-food':'sleep'}" class="btn ${done?'secondary':'outline'} small">${done?'✓':'View'}</button></div>`}
-function renderPlan(){let d=selected(),wk=weekFor(d)||WEEKS[WEEKS.length-1],days=[0,1,2,3,4,5,6].map(i=>addDays(wk[0],i));let sessions=days.map(x=>({d:x,w:workoutFor(x)}));let duration=wk[1]+wk[2]+wk[3];$('view-plan').innerHTML=`<div class="section-intro"><div><div class="eyebrow">YOUR TRAINING CALENDAR</div><h1>One week at a time.</h1><p>Wednesday and Friday runs · Sunday long run · Monday and Thursday gym. Distances in km.</p></div><div class="date-nav"><button data-change-week="-1" aria-label="Previous week">‹</button><button data-current-week="1">This week</button><button data-change-week="1" aria-label="Next week">›</button></div></div>
- <div class="card"><div class="card-head"><h2>Week of ${fmt(wk[0],{month:'short',day:'numeric'})} – ${fmt(addDays(wk[0],6),{month:'short',day:'numeric'})}</h2><span class="pill">Up to ${km(duration,1)} planned km</span></div>${sessions.map(({d:x,w})=>`<div class="item-line"><div class="item-left"><span class="icon-circle">${w.icon}</span><div><strong>${fmt(x,{weekday:'long',month:'short',day:'numeric'})}</strong><small>${esc(w.label)}${w.miles?' · '+km(w.miles)+' km':''}${runsOn(x).length?' · '+km(runsOn(x).reduce((a,r)=>a+r.distance,0))+' km recorded':''}</small></div></div><button class="btn small ${dateDone(x)?'secondary':'outline'}" data-open-day="${x}">${dateDone(x)?'✓ View':'View →'}</button></div>`).join('')}<div class="notice warning" style="margin-top:16px">Long-run distances are maximum targets, not obligations. Your recent Strava volume was low; repeat a week or shorten a run if the increase feels too aggressive. Cap long runs around 2½–3 hours.</div></div>
+function renderPlan(){let d=selected(),wk=weekFor(d)||WEEKS[WEEKS.length-1],days=[0,1,2,3,4,5,6].map(i=>addDays(wk[0],i));let sessions=days.map(x=>({d:x,w:workoutFor(x)}));let duration=wk[1]+wk[2]+wk[3]+(wk[0]==='2026-11-16'?(runsOn('2026-11-16')[0]?.distance||0):0);$('view-plan').innerHTML=`<div class="section-intro"><div><div class="eyebrow">YOUR TRAINING CALENDAR</div><h1>One week at a time.</h1><p>Wednesday and Friday runs · Sunday long run · Monday and Thursday gym. Distances in km.</p></div><div class="date-nav"><button data-change-week="-1" aria-label="Previous week">‹</button><button data-current-week="1">This week</button><button data-change-week="1" aria-label="Next week">›</button></div></div>
+ <div class="card"><div class="card-head"><h2>Week of ${fmt(wk[0],{month:'short',day:'numeric'})} – ${fmt(addDays(wk[0],6),{month:'short',day:'numeric'})}</h2><span class="pill">Up to ${km(duration,1)} planned km</span></div>${sessions.map(({d:x,w})=>`<div class="item-line"><div class="item-left"><span class="icon-circle">${w.icon}</span><div><strong>${fmt(x,{weekday:'long',month:'short',day:'numeric'})}</strong><small>${esc(w.label)}${w.miles?' · '+km(w.miles)+' km':''}${runsOn(x).length?' · '+km(runsOn(x).reduce((a,r)=>a+r.distance,0))+' km recorded':''}</small></div></div><button class="btn small ${dateDone(x)?'secondary':'outline'}" data-open-day="${x}">${dateDone(x)?'✓ View':'View →'}</button></div>`).join('')}<div class="notice warning" style="margin-top:16px">This is an ambitious, conditional buildup. Only progress when your Achilles and recovery are comfortable. Repeat or reduce a week if needed; avoid catching up missed runs. Cap long runs around 2½–3 hours, even if the target distance is longer. No 42.2 km training run is required.</div></div>
  <div class="two-cards" style="margin-top:19px"><div class="card"><h2>🏋️ Your home setup</h2>${htmlActions([['▦','Mikolo rack + barbell','Squats, bench, rows, pulldowns'],['◆','Two 25-lb dumbbells','Presses, step-ups, assistance'],['▤','Yoga mat + foam roller','Core work, mobility, cooldowns']])}</div><div class="card"><h2>🌿 Mobility routines</h2>${htmlActions([['⚡','Before running','5-minute dynamic warm-up'],['◌','After running','8-minute gentle cooldown'],['☀','Rest day','10-minute easy mobility']])}<button class="btn secondary small" data-action="mobility">Open routines →</button></div></div>`}
 function renderFood(){let d=selected(),list=[...s.food].sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id)),f=foodFor(d);let dayFoods=list.filter(x=>x.date===d);let totals=dayFoods.reduce((v,x)=>({cal:v.cal+(Number(x.cal)||0),protein:v.protein+(Number(x.protein)||0),carbs:v.carbs+(Number(x.carbs)||0)}),{cal:0,protein:0,carbs:0});$('view-food').innerHTML=`<div class="section-intro"><div><div class="eyebrow">FOOD & FUEL</div><h1>Eat well. Run better.</h1><p>Take a picture, add quick details, and build a useful food journal.</p></div><button class="btn" data-action="add-food">📷 Add meal</button></div>
  <div class="two-cards"><div class="card"><div class="card-head"><h2>${fmt(d,{weekday:'short',month:'short',day:'numeric'})} — your meals</h2><span class="pill gray">${dayFoods.length} logged</span></div><div class="metric-row"><div class="metric"><strong>${totals.cal||'—'}</strong><small>Est. kcal</small></div><div class="metric"><strong>${totals.protein||'—'}</strong><small>Protein (g)</small></div><div class="metric"><strong>${totals.carbs||'—'}</strong><small>Carbs (g)</small></div></div><p class="small-note" style="margin-top:11px">Totals only include meals with nutrition entered or analyzed. They are not daily targets.</p><div class="divider"></div>${dayFoods.length?dayFoods.map(mealRow).join(''):'<div class="empty">No meals logged for this day yet.<br/>📷 A photo or a quick description works.</div>'}</div>
@@ -187,7 +201,7 @@ document.addEventListener('click',e=>{let b=e.target.closest('[data-view],[data-
 document.addEventListener('change',async e=>{if(e.target.id==='food-camera'&&e.target.files?.[0]){try{if(e.target.files[0].size>12*1024*1024)throw Error('Image too large');activePhoto=await compressPhoto(e.target.files[0]);$('photo-area').innerHTML=`<img class="photo-preview" src="${activePhoto}" alt="Selected food">`;toast('Photo added')}catch(ex){toast(ex.message||'Unable to read this image')}}});
 document.addEventListener('submit',e=>{if(['prefs-form','run-form','sleep-form','food-form'].includes(e.target.id)){e.preventDefault();saveForm(e.target)}});
 window.addEventListener('hashchange',()=>{let v=location.hash.slice(1);if(['today','plan','food','progress','settings'].includes(v))nav(v)});
-window.StrideApp={snapshot:()=>({...s}),hydrate:(data)=>{Object.assign(s,stateDefault,data,{selectedDate:s.selectedDate,selectedView:s.selectedView,prefs:{...stateDefault.prefs,...(data.prefs||{})}});try{localStorage.setItem(STORAGE,JSON.stringify(s))}catch{};render();},render,notify:toast};
+window.StrideApp={snapshot:()=>({...s}),setTrainingOverrides:(rows)=>{trainingOverrides=Object.fromEntries((rows||[]).filter(x=>x&&typeof x.training_date==='string'&&Number(x.planned_km)>=0).map(x=>[x.training_date,x]));render();},hydrate:(data)=>{Object.assign(s,stateDefault,data,{selectedDate:s.selectedDate,selectedView:s.selectedView,prefs:{...stateDefault.prefs,...(data.prefs||{})}});try{localStorage.setItem(STORAGE,JSON.stringify(s))}catch{};render();},render,notify:toast};
 window.StrideCloud?.boot?.();
 s.selectedDate=today();nav(['today','plan','food','progress','settings'].includes(location.hash.slice(1))?location.hash.slice(1):'today');
 // Native app requests Health permission and sends a fresh snapshot. No request from a regular web browser.

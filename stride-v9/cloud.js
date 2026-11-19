@@ -68,6 +68,7 @@ async function loadAfterLogin(forceRemote=false){
   if(ready){
    notify('Cloud account connected. Your records can sync across devices.');
    await refreshPhotoUrls();
+   await refreshTrainingPlan();
    if(dirty)queueSave();
   }
  }catch(e){lastError='Cloud setup incomplete: '+e.message;notify(lastError);}
@@ -104,6 +105,14 @@ async function uploadPhoto(dataUrl){
  try{const blob=await(await fetch(dataUrl)).blob();if(blob.size>8e6)throw Error('Photo too large');const mime=blob.type||'image/jpeg';if(!['image/jpeg','image/png','image/webp'].includes(mime))throw Error('Unsupported image type');const ext=mime==='image/png'?'png':mime==='image/webp'?'webp':'jpg';const path=user.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2)+'.'+ext;const r=await client.storage.from('meal-photos').upload(path,blob,{contentType:mime,upsert:false});if(r.error)throw r.error;const link=await client.storage.from('meal-photos').createSignedUrl(path,3600);if(link.error)throw link.error;photoUrls[path]={url:link.data.signedUrl,expires:Date.now()+3500*1000};return path;}catch(e){notify('Photo kept on this device; private cloud upload failed.');return null;}
 }
 async function deletePhoto(path){if(!client||!user||!path||!path.startsWith(user.id+'/'))return;await client.storage.from('meal-photos').remove([path]);delete photoUrls[path];}
+async function refreshTrainingPlan(){
+ if(!client||!user||!window.StrideApp?.setTrainingOverrides)return;
+ try{
+  const {data,error}=await client.from('stride_training_overrides').select('training_date,activity,planned_km,instructions').eq('user_id',user.id).order('training_date',{ascending:true});
+  if(error)throw error;
+  window.StrideApp.setTrainingOverrides(data||[]);
+ }catch(e){console.warn('Using bundled training plan because cloud schedule could not load:',e?.message||e);}
+}
 async function refreshPhotoUrls(){if(!client||!user)return;const entries=snapshot().food||[];const paths=[...new Set(entries.map(x=>x.photoPath).filter(Boolean))];await Promise.all(paths.map(async path=>{if(photoUrls[path]&&photoUrls[path].expires>Date.now())return;const r=await client.storage.from('meal-photos').createSignedUrl(path,3600);if(!r.error)photoUrls[path]={url:r.data.signedUrl,expires:Date.now()+3500*1000};}));refresh();}
 function photoUrl(x){if(!x)return '';return x.photoPath?(photoUrls[x.photoPath]?.url||''):(x.photo||'');}
 function renderSettings(){const st=status();const safe=(v)=>String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
