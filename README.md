@@ -14,7 +14,7 @@ python -m http.server 8090 -d stride-v9
 Then open http://localhost:8090. Without signing in, the app runs in device-only mode and never writes to Supabase.
 
 ## History
-Git history was rebuilt from the ChatGPT-generated build ZIPs (safe hosting → cloud sync → marathon build → v6 → v7 → v9). v8 was never saved locally, so v7 → v9 is one commit.
+Git history was rebuilt from the ChatGPT-generated build ZIPs (safe hosting → cloud sync → marathon build → v6 → v7 → v9). v8 (`Stride_v8_Smart_Netlify.zip`) turned up later and isn't in the history, so v7 → v9 is one commit. It only has the front-end files (no Supabase functions or SQL), and v9 contains all of its features.
 
 ## Phase 0 checklist
 - [x] Git repo with history of past builds
