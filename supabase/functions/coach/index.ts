@@ -53,7 +53,8 @@ Deno.serve(async (req) => {
   const checked = checkInput(body);
   if (!checked.ok) return reply(400, { error: checked.error });
 
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  // Tolerate whitespace and surrounding quotes picked up when pasting the secret.
+  const apiKey = (Deno.env.get('ANTHROPIC_API_KEY') ?? '').trim().replace(/^["']|["']$/g, '').trim();
   if (!apiKey) return reply(503, { error: 'The AI coach is not set up yet' });
   const anthropic = new Anthropic({ apiKey });
 
@@ -91,7 +92,10 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) return reply(503, { error: 'The coach is busy. Try again in a minute.' });
     if (e instanceof Anthropic.AuthenticationError) {
-      console.error('coach: Anthropic API key rejected');
+      // Format facts only; never log any part of the key itself.
+      console.error(
+        `coach: Anthropic API key rejected (anthropic prefix: ${apiKey.startsWith('sk-ant-')}, length: ${apiKey.length}, inner whitespace: ${/\s/.test(apiKey)})`,
+      );
       return reply(503, { error: 'The AI coach is not set up correctly' });
     }
     if (e instanceof Anthropic.APIError) {
