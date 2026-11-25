@@ -1,6 +1,6 @@
 # Stride
 
-Personal training, nutrition and recovery PWA. Static site in `stride-v9/`, hosted on Netlify (`stridehealth.netlify.app`), data in Supabase.
+Personal training, nutrition and recovery app. The live v9 web app is the static site in `stride-v9/`, hosted on Netlify (`stridehealth.netlify.app`), data in Supabase.
 
 ## Layout
 - `stride-v9/` — the site Netlify publishes (no build step)
