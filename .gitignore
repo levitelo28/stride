@@ -1,0 +1,12 @@
+node_modules/
+.netlify/
+.env
+.env.*
+supabase/.temp/
+supabase/.branches/
+.claude/settings.local.json
+*.zip
+# Personal data exports and backups never go in the repo
+stride-backup-*.json
+export_*/
+activities.csv

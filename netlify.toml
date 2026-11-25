@@ -1,0 +1,16 @@
+# Static site: no build step. Netlify serves the stride-v9 folder as-is.
+[build]
+  publish = "stride-v9"
+
+# The service worker must never be cached by the browser/CDN, or users get stuck on old versions.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
