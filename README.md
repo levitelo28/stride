@@ -5,7 +5,9 @@ Personal training, nutrition and recovery app. The live v9 web app is the static
 ## Layout
 - `stride-v9/` — the site Netlify publishes (no build step)
 - `netlify.toml` — publish folder and headers
-- `supabase/` — (to add) database migrations and edge functions pulled from the live project
+- `app/` — the new Expo (iPhone/Android/web) app; see `app/README.md`
+- `docs/PLAN.md` — product and build plan
+- `supabase/` — schema export of the live project
 
 ## Run locally
 ```
