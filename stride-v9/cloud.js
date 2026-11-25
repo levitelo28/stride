@@ -13,7 +13,7 @@ function refresh(){window.StrideApp?.render?.()}
 function updateStatus(){const pill=document.getElementById('sync-pill');if(pill){pill.textContent=user?(syncConflict?'⚠ Sync conflict':lastError?'⚠ Sync issue':!ready?'● Connecting…':dirty?'● Saving…':'✓ Cloud saved'):(client?'● Sign in to sync':'○ Cloud not set up');pill.title=lastError||'';} }
 function snapshot(){return window.StrideApp?.snapshot?.()||{};}
 function apply(data){window.StrideApp?.hydrate?.(data)}
-function hasLocalData(d){return (d.runLogs?.length||0)+(d.food?.length||0)+(d.sleep?.length||0)+Object.keys(d.gymLogs||{}).length+Object.keys(d.completed||{}).length+(d.healthRuns?.length||0)>0;}
+function hasLocalData(d){return (d.runLogs?.length||0)+(d.food?.length||0)+(d.sleep?.length||0)+Object.keys(d.gymLogs||{}).length+Object.keys(d.completed||{}).length+(d.healthRuns?.length||0)+(d.customWorkouts?.length||0)>0;}
 function cleanSnapshot(d){const clone=JSON.parse(JSON.stringify(d));delete clone.selectedView;delete clone.selectedDate;return clone;}
 const pendingKey=()=>user?'stride-cloud-pending-'+user.id:'';
 const revisionKey=()=>user?'stride-cloud-revision-'+user.id:'';
@@ -126,5 +126,12 @@ function renderSettings(){const st=status();const safe=(v)=>String(v||'').replac
  document.addEventListener('submit',async e=>{if(e.target.id==='cloud-config-form'){e.preventDefault();const f=new FormData(e.target);await configure(String(f.get('url')||''),String(f.get('key')||''));}if(e.target.id==='cloud-login-form'){e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;try{await signIn(String(new FormData(e.target).get('email')||''));}catch(x){lastError=x.message;refresh();notify(x.message)}finally{b.disabled=false;}}});
  document.addEventListener('click',async e=>{const b=e.target.closest('[data-cloud]');if(!b)return;const cmd=b.dataset.cloud;if(cmd==='sign-out')await signOut();if(cmd==='sync-now'){await save();notify(lastError||'Cloud sync complete');}if(cmd==='reload'){if(confirm('Load the latest cloud copy? Export a backup first: unsynced device edits may be replaced.')){saveLocalBackup('before-refresh');await loadAfterLogin(true);}}if(cmd==='change-project'){if(confirm('Change Supabase project? Your cloud account is not deleted. Export a backup first.')){localStorage.removeItem(SETUP_KEY);await client?.auth.signOut();location.reload();}}});
  window.addEventListener('online',()=>{if(dirty)save();});
- window.StrideCloud={boot:initialize,status,queueSave,estimateMeal,uploadPhoto,deletePhoto,photoUrl,refreshPhotoUrls,renderSettings};
+ async function coach(){
+  if(!client||!user)throw new Error('Sign in first to use the private AI coach.');
+  const {data,error}=await client.functions.invoke('stride-coach',{body:{kind:'weekly-review'}});
+  if(error)throw new Error('The AI coaching service is not configured or is unavailable. See the v8 setup guide.');
+  if(!data?.text)throw new Error(data?.error||'AI coaching service not configured.');
+  return data;
+ }
+ window.StrideCloud={boot:initialize,status,queueSave,estimateMeal,uploadPhoto,deletePhoto,photoUrl,refreshPhotoUrls,renderSettings,coach};
 })();

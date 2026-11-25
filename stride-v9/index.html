@@ -7,12 +7,14 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Stride — your marathon training, nutrition and recovery companion.">
-  <title>Stride v7 | Evergreen Minimal</title>
+  <title>Stride v9 | Personal Goals</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="refined.css">
   <link rel="stylesheet" href="v7.css">
+  <link rel="stylesheet" href="v8.css">
+  <link rel="stylesheet" href="v9.css">
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="v-sprite" width="0" height="0" style="position:absolute;overflow:hidden">
@@ -55,10 +57,10 @@
    <button class="nav-btn" data-view="recovery"><svg class="v-icon"><use href="#vicon-heart"></use></svg> Recovery</button>
    <button class="nav-btn" data-view="settings"><svg class="v-icon"><use href="#vicon-settings"></use></svg> Settings</button>
   </nav>
-  <div class="sidebar-bottom"><div class="tiny-eyebrow">YOUR NEXT RACE</div><strong>LA Marathon 2027</strong><div id="side-countdown" class="muted">March 7, 2027</div><div class="mini-progress"><div id="side-progress"></div></div></div>
+  <div class="sidebar-bottom"><div class="tiny-eyebrow">YOUR CURRENT GOAL</div><strong id="side-goal-name">Choose a goal</strong><div id="side-countdown" class="muted">March 7, 2027</div><div class="mini-progress"><div id="side-progress"></div></div></div>
  </aside>
  <div class="app-main">
-  <header class="topbar"><div class="v-topbrand"><strong>stride<span>.</span></strong><div><span class="top-label">STRIDE · LA MARATHON 2027</span><span id="top-section" class="top-title">Today</span></div></div><div class="topbar-right"><span id="sync-pill" class="status-pill">○ Device only</span><button class="round-btn" aria-label="Open settings" data-view="settings"><svg class="v-icon"><use href="#vicon-user"></use></svg></button></div></header>
+  <header class="topbar"><div class="v-topbrand"><strong>stride<span>.</span></strong><div><span class="top-label"><span id="top-goal-label">STRIDE · PERSONAL TRAINING</span></span><span id="top-section" class="top-title">Today</span></div></div><div class="topbar-right"><span id="sync-pill" class="status-pill">○ Device only</span><button class="round-btn" aria-label="Open settings" data-view="settings"><svg class="v-icon"><use href="#vicon-user"></use></svg></button></div></header>
   <main id="main-content" class="main-content">
    <section id="view-today" class="view active"></section>
    <section id="view-plan" class="view"></section>
@@ -81,6 +83,7 @@
 <script src="cloud-config.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script defer src="cloud.js"></script>
+<script defer src="goal-core.js"></script>
 <script defer src="app.js"></script>
 </body>
 </html>
