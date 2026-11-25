@@ -12,5 +12,11 @@
 - `migrations/20261126000000_core_tables.sql` — **applied 2026-11-26.** Adds `activities`, `daily_metrics`, `plans` and `plan_sessions`, all owner-only under RLS with no anonymous access. Before it was applied, a rolled-back test checked owner isolation, constraints, the one-active-plan rule and the cross-user plan foreign key. `schema.sql` predates this migration.
 
 - `migrations/20261126010000_replace_active_plan.sql` — **applied 2026-11-26.** Adds `stride_replace_active_plan(goal, warnings, sessions)`, which archives the active plan and saves a new one in a single transaction. It runs as the caller (security invoker), so RLS still applies; only signed-in users can call it. A rolled-back test checked replacement, atomicity on bad input, and isolation between users before it was applied.
+- `migrations/20261126020000_coach.sql` — **applied 2026-11-26.** Adds `profiles` (AI-coach consent) and `coach_reviews` (saved weekly reviews; owners can read, add and delete but not edit them). Tested with a rolled-back RLS test first.
+
+## Edge functions
+- `functions/coach` — **deployed 2026-11-26.** `POST { input }`, where `input` is the training summary built by the app (`app/src/domain/coach.ts`). It requires a signed-in user with coach consent and allows at most 8 reviews per user per day. It calls `claude-opus-5-5` with structured JSON output and server-side refusal fallback, then saves the review. The prompt and schema are in `prompt.ts`, unit-tested from the app.
+  - Needs the `ANTHROPIC_API_KEY` secret. Until it is set, the function replies `503 The AI coach is not set up yet`.
+  - Deploy: `npx supabase functions deploy coach --project-ref tlslogvdbwjttfehesrr --use-api`
 
 The new app copies the v9 record into these tables on every load (`app/src/domain/sync.ts`). The copy is idempotent: rows are keyed by `v9:<id>` external IDs, and plans created in the new app are never overwritten.

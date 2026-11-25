@@ -1,4 +1,5 @@
 /** Supabase reads and writes for the new tables. */
+import type { CoachInput } from '@/domain/coach';
 import { addDays, today } from '@/domain/dates';
 import type { OverrideRow } from '@/domain/legacy';
 import {
@@ -15,6 +16,7 @@ import {
   type PlanSessionRow,
 } from '@/domain/rows';
 import { dedupeActivities } from '@/domain/stats';
+import type { CoachReview } from '@/domain/proposals';
 import { planLegacySync } from '@/domain/sync';
 import type { Activity, Plan, PlannedSession, UserData } from '@/domain/types';
 import { supabase } from '@/lib/supabase';
@@ -253,4 +255,59 @@ export async function saveActivity(activity: Omit<Activity, 'id'> & { id?: strin
 export async function deleteActivity(id: string): Promise<void> {
   const { error } = await supabase.from('activities').delete().eq('id', id).is('external_id', null);
   fail(error, 'Deleting workout');
+}
+
+// ---- AI coach ----
+
+export interface SavedReview {
+  review: CoachReview;
+  createdAt: string;
+}
+
+export async function loadCoachState(userId: string): Promise<{ consentAt: string | null; latest: SavedReview | null }> {
+  const [profile, latest] = await Promise.all([
+    supabase.from('profiles').select('ai_coach_consent_at').eq('user_id', userId).maybeSingle(),
+    supabase
+      .from('coach_reviews')
+      .select('review,created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  fail(profile.error, 'Loading coach settings');
+  fail(latest.error, 'Loading last review');
+  return {
+    consentAt: (profile.data?.ai_coach_consent_at as string | null) ?? null,
+    latest: latest.data ? { review: latest.data.review as CoachReview, createdAt: latest.data.created_at as string } : null,
+  };
+}
+
+export async function setCoachConsent(userId: string, on: boolean): Promise<string | null> {
+  const consentAt = on ? new Date().toISOString() : null;
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ user_id: userId, ai_coach_consent_at: consentAt }, { onConflict: 'user_id' });
+  fail(error, 'Saving coach setting');
+  return consentAt;
+}
+
+export async function requestReview(input: CoachInput): Promise<SavedReview> {
+  const { data, error } = await supabase.functions.invoke('coach', { body: { input } });
+  if (error) {
+    // Error responses carry { error: "<message for the user>" }.
+    let message = 'The coach is unavailable right now';
+    const ctx = (error as { context?: unknown }).context;
+    if (ctx instanceof Response) {
+      try {
+        const body = (await ctx.json()) as { error?: string };
+        if (body.error) message = body.error;
+      } catch {
+        // keep the default message
+      }
+    }
+    throw new Error(message);
+  }
+  const d = data as { review: CoachReview; created_at: string };
+  return { review: d.review, createdAt: d.created_at };
 }

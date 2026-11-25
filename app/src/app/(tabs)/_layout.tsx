@@ -36,6 +36,10 @@ export default function TabLayout() {
         options={{ title: 'Training', tabBarIcon: icon({ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }) }}
       />
       <Tabs.Screen
+        name="coach"
+        options={{ title: 'Coach', tabBarIcon: icon({ ios: 'sparkles', android: 'auto_awesome', web: 'auto_awesome' }) }}
+      />
+      <Tabs.Screen
         name="progress"
         options={{ title: 'Progress', tabBarIcon: icon({ ios: 'chart.bar', android: 'bar_chart', web: 'bar_chart' }) }}
       />
