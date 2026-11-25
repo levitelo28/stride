@@ -1,1 +1,18 @@
-{"name":"Stride — Marathon Companion","short_name":"Stride","description":"A simple personal marathon training companion: daily runs, strength, food, sleep, and recovery.","start_url":"./index.html","display":"standalone","background_color":"#f7f8f4","theme_color":"#143a31","orientation":"portrait-primary","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "Stride v7 \u2014 Marathon & Recovery",
+  "short_name": "Stride",
+  "description": "Your premium marathon training, nutrition and recovery companion.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0B1914",
+  "theme_color": "#0B1914",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

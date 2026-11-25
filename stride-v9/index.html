@@ -1,46 +1,86 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#143a31"/><meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<title>Stride | Your daily training</title>
-<link rel="manifest" href="manifest.webmanifest"/><link rel="icon" href="icon.svg" type="image/svg+xml"/>
-<link rel="stylesheet" href="style.css"/><link rel="stylesheet" href="refined.css"/>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B1914">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Stride — your marathon training, nutrition and recovery companion.">
+  <title>Stride v7 | Evergreen Minimal</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="refined.css">
+  <link rel="stylesheet" href="v7.css">
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="v-sprite" width="0" height="0" style="position:absolute;overflow:hidden">
+  <symbol id="vicon-house" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="vicon-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h3M14 14h3M8 18h3"/></symbol>
+  <symbol id="vicon-nutrition" viewBox="0 0 24 24"><path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M14 14h6M19 3c-4.5 0-5 5-5 10h5V3zm0 11v7"/></symbol>
+  <symbol id="vicon-chart" viewBox="0 0 24 24"><path d="M4 20V12M10 20V7M16 20V14M22 20V4"/><path d="M2 20h20"/></symbol>
+  <symbol id="vicon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m10 2-.7 2.4-2.1.9-2.2-1.2-2.3 3.9 2 1.5-.2 2.5-2 1.4 2.3 3.9 2.2-1.1 2.1.9L10 22h4l.7-2.4 2.1-.9 2.2 1.2 2.3-3.9-2-1.5.2-2.5 2-1.4-2.3-3.9-2.2 1.1-2.1-.9L14 2z"/></symbol>
+  <symbol id="vicon-chevon-unused" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="vicon-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="vicon-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="vicon-arrow-right" viewBox="0 0 24 24"><path d="M4 12h15m-7-7 7 7-7 7"/></symbol>
+  <symbol id="vicon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></symbol>
+  <symbol id="vicon-footprints" viewBox="0 0 24 24"><path d="M6 13c-3 0-4 3-3 5 1 3 5 3 7 1 1-2-1-6-4-6zm11-11c-2 0-3 4-4 7-1 3 0 5 2 6 3 1 5-1 6-4 1-3-1-9-4-9zM5 9l-.5-2M8 8V5m2 5 1-2m5 10 1 3m3-4 1 2"/></symbol>
+  <symbol id="vicon-snowflake" viewBox="0 0 24 24"><path d="M12 2v20M4 7l16 10M4 17 20 7M8 4l4 4 4-4M8 20l4-4 4 4M2 9l5 1 1-5m14 10-5-1-1 5M2 15l5-1 1 5m14-10-5 1-1-5"/></symbol>
+  <symbol id="vicon-moon" viewBox="0 0 24 24"><path d="M20.4 15.2A9 9 0 0 1 8.8 3.6 9 9 0 1 0 20.4 15.2z"/></symbol>
+  <symbol id="vicon-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+  <symbol id="vicon-dumbbell" viewBox="0 0 24 24"><path d="m5 8-2 2 11 11 2-2M8 5l-3 3 11 11 3-3M19 2l3 3-3 3-3-3M2 19l3 3 3-3-3-3"/></symbol>
+  <symbol id="vicon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 10v6m0-10v1"/></symbol>
+  <symbol id="vicon-camera" viewBox="0 0 24 24"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></symbol>
+  <symbol id="vicon-heart" viewBox="0 0 24 24"><path d="M20 5a5 5 0 0 0-7 0l-1 1-1-1a5 5 0 0 0-7 7l8 8 8-8a5 5 0 0 0 0-7z"/></symbol>
+  <symbol id="vicon-user" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21c0-5 3-8 8-8s8 3 8 8"/></symbol>
+  <symbol id="vicon-cloud" viewBox="0 0 24 24"><path d="M7 18h12a4 4 0 0 0 0-8h-1A6 6 0 0 0 6 10a4 4 0 0 0 1 8z"/><path d="m9 14 2 2 4-4"/></symbol>
+  <symbol id="vicon-shield" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3 8 8 10 5-2 8-5 8-10V6z"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="vicon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+  <symbol id="vicon-pen" viewBox="0 0 24 24"><path d="m4 20 5-.9L20 8a3 3 0 0 0-4-4L5 15zM14 6l4 4M4 20h16"/></symbol>
+  <symbol id="vicon-trophy" viewBox="0 0 24 24"><path d="M7 3h10v7a5 5 0 0 1-10 0zM7 5H3v4a4 4 0 0 0 4 4m10-8h4v4a4 4 0 0 1-4 4M12 15v5m-5 1h10"/></symbol>
+  <symbol id="vicon-activity" viewBox="0 0 24 24"><path d="M2 12h4l3-8 4 16 3-8h6"/></symbol>
+  <symbol id="vicon-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 10h.01M16 10h.01M8 15a5 5 0 0 0 8 0"/></symbol>
+</svg>
 <div class="app-shell">
-  <aside class="sidebar" aria-label="Main navigation">
-    <a href="#today" class="brand" data-nav="today"><span class="brand-mark">↗</span><span>stride<span class="brand-dot">.</span><small>YOUR TRAINING, MADE SIMPLE</small></span></a>
-    <div class="side-label">YOUR SPACE</div>
-    <nav class="side-nav">
-      <button class="nav-btn active" data-view="today"><span>⌂</span> Today</button>
-      <button class="nav-btn" data-view="plan"><span>▦</span> Training</button>
-      <button class="nav-btn" data-view="food"><span>◉</span> Food</button>
-      <button class="nav-btn" data-view="progress"><span>▥</span> Progress</button>
-      <button class="nav-btn" data-view="settings"><span>⚙</span> Settings</button>
-    </nav>
-    <div class="sidebar-bottom"><div class="tiny-eyebrow">YOUR NEXT RACE</div><strong>LA Marathon 2027</strong><div id="side-countdown" class="muted">March 7, 2027</div><div class="mini-progress"><div id="side-progress"></div></div></div>
-  </aside>
-  <div class="app-main">
-    <header class="topbar"><div><span class="top-label">STRIDE · LA MARATHON 2027</span><span id="top-section" class="top-title">Today</span></div><div class="topbar-right"><span id="sync-pill" class="status-pill">◉ Local-first</span><button class="round-btn" aria-label="Open settings" data-view="settings">⚙</button></div></header>
-    <main id="main-content" class="main-content">
-      <section id="view-today" class="view active"></section>
-      <section id="view-plan" class="view"></section>
-      <section id="view-food" class="view"></section>
-      <section id="view-progress" class="view"></section>
-      <section id="view-settings" class="view"></section>
-    </main>
-  </div>
+ <aside class="sidebar" aria-label="Main navigation">
+  <a href="#today" class="brand" data-nav="today"><span class="brand-mark">↗</span><span>stride<span class="brand-dot">.</span><small>TRAIN · FUEL · RECOVER</small></span></a>
+  <div class="side-label">YOUR SPACE</div>
+  <nav class="side-nav">
+   <button class="nav-btn active" data-view="today"><svg class="v-icon"><use href="#vicon-house"></use></svg> Today</button>
+   <button class="nav-btn" data-view="plan"><svg class="v-icon"><use href="#vicon-calendar"></use></svg> Training</button>
+   <button class="nav-btn" data-view="food"><svg class="v-icon"><use href="#vicon-nutrition"></use></svg> Food</button>
+   <button class="nav-btn" data-view="progress"><svg class="v-icon"><use href="#vicon-chart"></use></svg> Progress</button>
+   <button class="nav-btn" data-view="recovery"><svg class="v-icon"><use href="#vicon-heart"></use></svg> Recovery</button>
+   <button class="nav-btn" data-view="settings"><svg class="v-icon"><use href="#vicon-settings"></use></svg> Settings</button>
+  </nav>
+  <div class="sidebar-bottom"><div class="tiny-eyebrow">YOUR NEXT RACE</div><strong>LA Marathon 2027</strong><div id="side-countdown" class="muted">March 7, 2027</div><div class="mini-progress"><div id="side-progress"></div></div></div>
+ </aside>
+ <div class="app-main">
+  <header class="topbar"><div class="v-topbrand"><strong>stride<span>.</span></strong><div><span class="top-label">STRIDE · LA MARATHON 2027</span><span id="top-section" class="top-title">Today</span></div></div><div class="topbar-right"><span id="sync-pill" class="status-pill">○ Device only</span><button class="round-btn" aria-label="Open settings" data-view="settings"><svg class="v-icon"><use href="#vicon-user"></use></svg></button></div></header>
+  <main id="main-content" class="main-content">
+   <section id="view-today" class="view active"></section>
+   <section id="view-plan" class="view"></section>
+   <section id="view-food" class="view"></section>
+   <section id="view-recovery" class="view"></section>
+   <section id="view-progress" class="view"></section>
+   <section id="view-settings" class="view"></section>
+  </main>
+ </div>
 </div>
-<nav class="mobile-nav" aria-label="Mobile navigation">
- <button data-view="today" class="mobile-link active"><span>⌂</span><small>Today</small></button>
- <button data-view="plan" class="mobile-link"><span>▦</span><small>Plan</small></button>
- <button data-view="food" class="mobile-link"><span>◉</span><small>Food</small></button>
- <button data-view="progress" class="mobile-link"><span>▥</span><small>Progress</small></button>
- 
+<nav class="mobile-nav" aria-label="Main navigation">
+ <button data-view="today" class="mobile-link active"><svg class="v-icon"><use href="#vicon-house"></use></svg><small>Today</small></button>
+ <button data-view="plan" class="mobile-link"><svg class="v-icon"><use href="#vicon-calendar"></use></svg><small>Training</small></button>
+ <button data-view="food" class="mobile-link"><svg class="v-icon"><use href="#vicon-nutrition"></use></svg><small>Food</small></button>
+ <button data-view="progress" class="mobile-link"><svg class="v-icon"><use href="#vicon-chart"></use></svg><small>Progress</small></button>
 </nav>
 <dialog id="modal"><div class="modal-inner"><button class="modal-close" id="close-modal" aria-label="Close dialog">×</button><div id="modal-content"></div></div></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
-<script src="seed.js"></script><script src="cloud-config.js"></script><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script defer src="cloud.js"></script><script defer src="app.js"></script>
-</body></html>
+<script src="seed.js"></script>
+<script src="cloud-config.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script defer src="cloud.js"></script>
+<script defer src="app.js"></script>
+</body>
+</html>
