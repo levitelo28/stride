@@ -1,9 +1,9 @@
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
+import { loadUserData, syncFromWebApp } from '@/data/repo';
 import { today } from '@/domain/dates';
 import { demoData } from '@/domain/demo';
-import { fromLegacyState, type OverrideRow } from '@/domain/legacy';
 import type { UserData } from '@/domain/types';
 import { supabase } from '@/lib/supabase';
 
@@ -22,19 +22,7 @@ interface StoreValue {
 
 const StoreContext = createContext<StoreValue | null>(null);
 
-async function loadCloudData(userId: string): Promise<UserData> {
-  const [state, overrides] = await Promise.all([
-    supabase.from('stride_user_state').select('state').eq('user_id', userId).maybeSingle(),
-    supabase
-      .from('stride_training_overrides')
-      .select('training_date,activity,planned_km,instructions')
-      .eq('user_id', userId)
-      .order('training_date'),
-  ]);
-  if (state.error) throw state.error;
-  if (overrides.error) throw overrides.error;
-  return fromLegacyState(state.data?.state, (overrides.data ?? []) as OverrideRow[]);
-}
+const message = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode>('loading');
@@ -42,17 +30,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const inFlight = useRef<Promise<void> | null>(null);
 
-  const load = useCallback(async (s: Session) => {
-    setRefreshing(true);
-    try {
-      setData(await loadCloudData(s.user.id));
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load your data');
-    } finally {
-      setRefreshing(false);
-    }
+  const load = useCallback((s: Session) => {
+    // getSession and onAuthStateChange both fire at startup; run one load at a time.
+    if (inFlight.current) return inFlight.current;
+    inFlight.current = (async () => {
+      setRefreshing(true);
+      let syncError: string | null = null;
+      try {
+        // Copy anything new from the web app first; a failure here shouldn't hide existing data.
+        await syncFromWebApp(s.user.id).catch((e) => {
+          syncError = `Web-app sync failed: ${message(e, 'unknown error')}`;
+        });
+        setData(await loadUserData(s.user.id));
+        setError(syncError);
+      } catch (e) {
+        setError(message(e, 'Could not load your data'));
+      } finally {
+        setRefreshing(false);
+        inFlight.current = null;
+      }
+    })();
+    return inFlight.current;
   }, []);
 
   useEffect(() => {

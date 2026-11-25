@@ -162,14 +162,19 @@ export function planFromOverrides(rows: OverrideRow[]): Plan | null {
   };
 }
 
-export function fromLegacyState(state: unknown, overrides: OverrideRow[] = []): UserData {
+/** Every activity in the web-app record, without cross-source deduplication (used when copying to tables). */
+export function legacyActivities(state: unknown): Activity[] {
   const s = isObj(state) ? state : {};
-  const runs = [
+  return [
     ...arr(s.runLogs).map((r) => runFrom(r, 'manual')),
     ...arr(s.healthRuns).map((r) => runFrom(r, 'apple_health')),
-  ];
-  const custom = arr(s.customWorkouts).map(customFrom);
-  const activities = dedupeActivities([...runs, ...custom].filter((a): a is Activity => a !== null));
+    ...arr(s.customWorkouts).map(customFrom),
+  ].filter((a): a is Activity => a !== null);
+}
+
+export function fromLegacyState(state: unknown, overrides: OverrideRow[] = []): UserData {
+  const s = isObj(state) ? state : {};
+  const activities = dedupeActivities(legacyActivities(state));
   const sleep: SleepEntry[] = arr(s.sleep)
     .filter((x) => isISODate(x.date) && num(x.hours))
     .map((x) => ({ date: x.date as string, hours: Number(x.hours), source: sourceOf(x.source) }));
