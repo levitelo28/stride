@@ -16,11 +16,15 @@ export interface Activity {
   rpe?: number;
   notes?: string;
   source: ActivitySource;
+  /** Copied from the v9 web app; edit it there (changes here would be overwritten). */
+  fromWebApp?: boolean;
 }
 
 export type SessionKind = 'run' | 'long' | 'event' | 'strength' | 'other';
 
 export interface PlannedSession {
+  /** Database row id; absent for sessions that haven't been saved (previews, sample data). */
+  id?: string;
   date: ISODate;
   kind: SessionKind;
   label: string;
@@ -50,7 +54,11 @@ export interface WeekSummary {
   sessions?: number;
 }
 
+export type PlanSource = 'rules' | 'coach' | 'legacy';
+
 export interface Plan {
+  id?: string;
+  source?: PlanSource;
   goal: GoalInput;
   createdAt: string;
   sessions: Record<ISODate, PlannedSession>;

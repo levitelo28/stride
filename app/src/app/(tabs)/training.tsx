@@ -1,8 +1,9 @@
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { sessionSummary } from '@/components/sessions';
-import { Card, Pill, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Pill, Row, Screen, T } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { addDays, formatDay, formatShort, today, weekStart } from '@/domain/dates';
 import { GOAL_LABELS } from '@/domain/plan';
@@ -28,11 +29,15 @@ export default function Training() {
         <T variant="title">{plan ? plan.goal.name || GOAL_LABELS[plan.goal.type] : 'Your plan'}</T>
         {plan?.goal.targetDate ? <T variant="muted">Target {formatDay(plan.goal.targetDate)}</T> : null}
       </View>
+      {plan ? (
+        <Button label="Change goal / new plan" kind="secondary" onPress={() => router.push('/goal')} />
+      ) : null}
 
       {!plan ? (
         <Card>
           <T variant="h2">No training plan yet</T>
-          <T variant="muted">Goal setup and plan generation arrive in the next milestone.</T>
+          <T variant="muted">Tell Stride what you’re training for and it will build a plan you can edit.</T>
+          <Button label="Set a goal" onPress={() => router.push('/goal')} />
         </Card>
       ) : (
         <>
@@ -64,8 +69,13 @@ export default function Training() {
             {days.map((d) => {
               const s = plan.sessions[d];
               return (
-                <Row
+                <Pressable
                   key={d}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${formatDay(d)}: ${s ? s.label : 'Rest'}. ${s ? 'Edit' : 'Add a session'}`}
+                  onPress={() => router.push({ pathname: '/session', params: { date: d } })}
+                  style={({ pressed }) => pressed && { opacity: 0.7 }}>
+                <Row
                   style={{
                     paddingVertical: space.md,
                     borderBottomWidth: d === days[6] ? 0 : 1,
@@ -86,6 +96,7 @@ export default function Training() {
                     {done.has(d) ? <Pill>Done</Pill> : null}
                   </View>
                 </Row>
+                </Pressable>
               );
             })}
           </Card>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
   type StyleProp,
   type TextProps,
@@ -66,6 +67,8 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!(disabled || busy), busy: !!busy }}
       disabled={disabled || busy}
       onPress={onPress}
       style={({ pressed }) => [
@@ -155,4 +158,118 @@ const styles = StyleSheet.create({
   pillText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   statValue: { color: colors.text, fontSize: 26, fontWeight: '800' },
   statUnit: { color: colors.muted, fontSize: 14, fontWeight: '600' },
+});
+
+export function Field({
+  label,
+  hint,
+  ...input
+}: { label: string; hint?: string } & ComponentProps<typeof TextInput>) {
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={formStyles.label}>{label}</Text>
+      <TextInput
+        placeholderTextColor={colors.muted}
+        accessibilityLabel={label}
+        {...input}
+        style={[formStyles.input, input.style]}
+      />
+      {hint ? <T variant="small">{hint}</T> : null}
+    </View>
+  );
+}
+
+/** Single-choice segmented control. */
+export function Choice<V extends string | number>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label?: string;
+  value: V;
+  options: { value: V; label: string }[];
+  onChange: (v: V) => void;
+}) {
+  return (
+    <View style={{ gap: 6 }}>
+      {label ? <Text style={formStyles.label}>{label}</Text> : null}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }} accessibilityRole="radiogroup">
+        {options.map((o) => {
+          const active = o.value === value;
+          return (
+            <Pressable
+              key={String(o.value)}
+              accessibilityRole="radio"
+              accessibilityLabel={o.label}
+              accessibilityState={{ checked: active }}
+              onPress={() => onChange(o.value)}
+              style={[formStyles.chip, active && formStyles.chipActive]}>
+              <Text style={[formStyles.chipText, active && { color: colors.accentInk }]}>{o.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+export function ErrorText({ children }: { children: ReactNode }) {
+  return children ? (
+    <Text accessibilityRole="alert" style={{ color: colors.danger, fontSize: 15 }}>
+      {children}
+    </Text>
+  ) : null;
+}
+
+/** Modal screen chrome: title row with a close link. */
+export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  return (
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View style={formStyles.sheetHead}>
+        <Text style={styles.h2}>{title}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={12}>
+          <Text style={{ color: colors.accent, fontSize: 16, fontWeight: '600' }}>Close</Text>
+        </Pressable>
+      </View>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.inner}>{children}</View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const formStyles = StyleSheet.create({
+  label: { color: colors.muted, fontSize: 13, fontWeight: '700', letterSpacing: 0.4 },
+  input: {
+    backgroundColor: colors.base,
+    color: colors.text,
+    borderColor: colors.line,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    minHeight: 48,
+    fontSize: 16,
+  },
+  chip: {
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.alt,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  chipText: { color: colors.text, fontSize: 14, fontWeight: '600' },
+  sheetHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
 });

@@ -11,4 +11,6 @@
 ## Migrations
 - `migrations/20261126000000_core_tables.sql` — **applied 2026-11-26.** Adds `activities`, `daily_metrics`, `plans` and `plan_sessions`, all owner-only under RLS with no anonymous access. Before it was applied, a rolled-back test checked owner isolation, constraints, the one-active-plan rule and the cross-user plan foreign key. `schema.sql` predates this migration.
 
+- `migrations/20261126010000_replace_active_plan.sql` — **applied 2026-11-26.** Adds `stride_replace_active_plan(goal, warnings, sessions)`, which archives the active plan and saves a new one in a single transaction. It runs as the caller (security invoker), so RLS still applies; only signed-in users can call it. A rolled-back test checked replacement, atomicity on bad input, and isolation between users before it was applied.
+
 The new app copies the v9 record into these tables on every load (`app/src/domain/sync.ts`). The copy is idempotent: rows are keyed by `v9:<id>` external IDs, and plans created in the new app are never overwritten.

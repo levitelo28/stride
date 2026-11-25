@@ -39,6 +39,7 @@ export interface PlanRow {
 }
 
 export interface PlanSessionRow {
+  id?: string;
   plan_id: string;
   user_id: string;
   local_date: ISODate;
@@ -57,6 +58,9 @@ const n = (x: number | string | null | undefined): number | undefined => {
 };
 const clampInt = (x: number | undefined, lo: number, hi: number) =>
   x === undefined ? null : Math.min(hi, Math.max(lo, Math.round(x)));
+
+/** legacy_fingerprint value marking a copied plan the user has edited in the new app; the web app no longer overwrites it. */
+export const DETACHED = 'detached';
 
 /** Prefix for external IDs of records copied from the v9 web app. */
 export const V9_PREFIX = 'v9:';
@@ -89,6 +93,7 @@ export function activityFromRow(r: ActivityRow): Activity {
     rpe: r.rpe ?? undefined,
     notes: r.notes ?? undefined,
     source: r.source,
+    fromWebApp: !!r.external_id?.startsWith(V9_PREFIX),
   };
 }
 
@@ -120,6 +125,7 @@ export function planFromRows(plan: PlanRow, sessions: PlanSessionRow[]): Plan {
   const out: Record<ISODate, PlannedSession> = {};
   for (const s of sessions)
     out[s.local_date] = {
+      id: s.id,
       date: s.local_date,
       kind: s.kind,
       label: s.label,
@@ -128,7 +134,15 @@ export function planFromRows(plan: PlanRow, sessions: PlanSessionRow[]): Plan {
       note: s.note ?? undefined,
       edited: s.edited,
     };
-  return { goal: plan.goal, createdAt: plan.created_at, sessions: out, weeks: [], warnings: plan.warnings ?? [] };
+  return {
+    id: plan.id,
+    source: plan.source,
+    goal: plan.goal,
+    createdAt: plan.created_at,
+    sessions: out,
+    weeks: [],
+    warnings: plan.warnings ?? [],
+  };
 }
 
 /** Stable fingerprint of a plan's sessions, used to detect changes made in the web app. */

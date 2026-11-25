@@ -29,9 +29,13 @@ const KIND_LABEL: Record<Activity['kind'], string> = {
   other: 'Workout',
 };
 
-export function ActivityRow({ a }: { a: Activity }) {
+export function ActivityRow({ a, onPress }: { a: Activity; onPress?: () => void }) {
   return (
-    <View style={styles.row}>
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      disabled={!onPress}
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
       <View style={{ flex: 1 }}>
         <T style={{ fontWeight: '700' }}>{a.name ?? KIND_LABEL[a.kind]}</T>
         <T variant="small">
@@ -39,7 +43,8 @@ export function ActivityRow({ a }: { a: Activity }) {
           {activitySummary(a) ? ` · ${activitySummary(a)}` : ''}
         </T>
       </View>
-    </View>
+      {onPress ? <Text style={{ color: colors.muted, fontSize: 18 }}>›</Text> : null}
+    </Pressable>
   );
 }
 

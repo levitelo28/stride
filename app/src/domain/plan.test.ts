@@ -37,11 +37,32 @@ test('week-to-week planned volume never rises more than 10% over the last build 
 });
 
 test('long run stays within its share of the week and the 30 km marathon cap', () => {
-  const plan = buildPlan(base, asOf);
-  for (const w of plan.weeks) {
-    assert.ok((w.longRunKm ?? 0) <= 30);
-    assert.ok((w.longRunKm ?? 0) <= (w.plannedKm ?? 0) * 0.45 + 0.1, JSON.stringify(w));
+  for (const runDays of [3, 4] as const) {
+    const plan = buildPlan({ ...base, runDays }, asOf);
+    for (const w of plan.weeks) {
+      assert.ok((w.longRunKm ?? 0) <= 30);
+      assert.ok((w.longRunKm ?? 0) <= Math.max((w.plannedKm ?? 0) * 0.5, base.currentLongestKm) + 0.1, JSON.stringify(w));
+    }
   }
+  const tenK = buildPlan({ ...base, type: '10k', runDays: 4 }, asOf);
+  for (const w of tenK.weeks)
+    assert.ok((w.longRunKm ?? 0) <= Math.max((w.plannedKm ?? 0) * 0.4, base.currentLongestKm) + 0.1, JSON.stringify(w));
+});
+
+test('build-week long runs never fall below the runner’s current long run', () => {
+  for (const runDays of [3, 4, 5] as const) {
+    const plan = buildPlan({ ...base, runDays }, asOf);
+    plan.weeks.forEach((w, i) => {
+      const easedWeek = i % 4 === 3 || i >= plan.weeks.length - 2;
+      if (!easedWeek) assert.ok((w.longRunKm ?? 0) >= base.currentLongestKm, `${runDays} days, week ${i}: ${w.longRunKm}`);
+    });
+  }
+});
+
+test('a 4-day marathon plan builds the long run toward 30 km', () => {
+  const plan = buildPlan({ ...base, runDays: 4 }, asOf);
+  const peakLong = Math.max(...plan.weeks.map((w) => w.longRunKm ?? 0));
+  assert.ok(peakLong >= 25, `peak long run ${peakLong}`);
 });
 
 test('race day is the event and the last two weeks taper', () => {

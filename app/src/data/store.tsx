@@ -1,10 +1,13 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
+import * as repo from '@/data/repo';
 import { loadUserData, syncFromWebApp } from '@/data/repo';
 import { today } from '@/domain/dates';
 import { demoData } from '@/domain/demo';
-import type { UserData } from '@/domain/types';
+import { applySessionEdit, removeSession } from '@/domain/forms';
+import { dedupeActivities } from '@/domain/stats';
+import type { Activity, ISODate, Plan, PlannedSession, UserData } from '@/domain/types';
 import { supabase } from '@/lib/supabase';
 
 type Mode = 'loading' | 'signed-out' | 'demo' | 'cloud';
@@ -18,6 +21,12 @@ interface StoreValue {
   refresh: () => Promise<void>;
   enterDemo: () => void;
   signOut: () => Promise<void>;
+  /** Writes. Each throws an Error with a user-facing message on failure. */
+  replacePlan: (plan: Plan) => Promise<void>;
+  saveSession: (fromDate: ISODate | null, session: PlannedSession) => Promise<void>;
+  deleteSession: (date: ISODate) => Promise<void>;
+  saveActivity: (activity: Omit<Activity, 'id'> & { id?: string }) => Promise<void>;
+  deleteActivity: (id: string) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -73,6 +82,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, [load]);
 
+  // After a cloud write, re-read the tables (no web-app sync needed).
+  const reload = useCallback(async () => {
+    if (session) setData(await loadUserData(session.user.id));
+  }, [session]);
+
   const value = useMemo<StoreValue>(
     () => ({
       mode,
@@ -97,8 +111,54 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setData(null);
         setMode('signed-out');
       },
+
+      replacePlan: async (plan) => {
+        if (mode === 'demo') return setData((d) => d && { ...d, plan: { ...plan, source: 'rules' } });
+        await repo.replacePlan(plan);
+        await reload();
+      },
+      saveSession: async (fromDate, edited) => {
+        const plan = data?.plan;
+        if (!plan) throw new Error('Set a goal first');
+        const result = fromDate
+          ? applySessionEdit(plan, fromDate, edited)
+          : plan.sessions[edited.date]
+            ? { ok: false as const, error: `There is already a session on ${edited.date}.` }
+            : { ok: true as const, value: { ...plan, sessions: { ...plan.sessions, [edited.date]: edited } } };
+        if (!result.ok) throw new Error(result.error);
+        if (mode === 'demo') return setData((d) => d && { ...d, plan: result.value });
+        if (!session) throw new Error('Sign in again to save');
+        const original = fromDate ? plan.sessions[fromDate] : undefined;
+        await repo.saveSession(plan, { ...edited, id: original?.id }, session.user.id);
+        await reload();
+      },
+      deleteSession: async (date) => {
+        const plan = data?.plan;
+        const s = plan?.sessions[date];
+        if (!plan || !s) return;
+        if (mode === 'demo') return setData((d) => d && { ...d, plan: removeSession(plan, date) });
+        await repo.deleteSession(plan, s);
+        await reload();
+      },
+      saveActivity: async (activity) => {
+        if (mode === 'demo')
+          return setData((d) => {
+            if (!d) return d;
+            const id = activity.id ?? `demo-${Date.now()}`;
+            const rest = d.activities.filter((a) => a.id !== id);
+            return { ...d, activities: dedupeActivities([{ ...activity, id }, ...rest]) };
+          });
+        if (!session) throw new Error('Sign in again to save');
+        await repo.saveActivity(activity, session.user.id);
+        await reload();
+      },
+      deleteActivity: async (id) => {
+        if (mode === 'demo') return setData((d) => d && { ...d, activities: d.activities.filter((a) => a.id !== id) });
+        await repo.deleteActivity(id);
+        await reload();
+      },
     }),
-    [mode, session, data, error, refreshing, load],
+    [mode, session, data, error, refreshing, load, reload],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

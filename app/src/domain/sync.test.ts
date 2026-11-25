@@ -25,7 +25,7 @@ const overrides = [
 ];
 
 test('copies every web-app activity once, keyed by a v9 external id', () => {
-  const plan = planLegacySync({ userId, legacyState, overrides, existingV9Ids: [], activePlan: null });
+  const plan = planLegacySync({ userId, legacyState, overrides, existingV9Ids: [], activePlan: null, hasLegacyPlan: false });
   assert.deepEqual(plan.activityUpserts.map((r) => r.external_id).sort(), ['v9:c1', 'v9:m-1', 'v9:strava-1']);
   assert.ok(plan.activityUpserts.every((r) => r.user_id === userId));
   assert.equal(plan.activityUpserts.find((r) => r.external_id === 'v9:strava-1')?.source, 'strava_csv');
@@ -34,7 +34,7 @@ test('copies every web-app activity once, keyed by a v9 external id', () => {
 });
 
 test('creates the plan when none exists, then does nothing while it is unchanged', () => {
-  const first = planLegacySync({ userId, legacyState, overrides, existingV9Ids: [], activePlan: null });
+  const first = planLegacySync({ userId, legacyState, overrides, existingV9Ids: [], activePlan: null, hasLegacyPlan: false });
   assert.equal(first.planAction.type, 'create');
   if (first.planAction.type !== 'create') return;
   const again = planLegacySync({
@@ -43,6 +43,7 @@ test('creates the plan when none exists, then does nothing while it is unchanged
     overrides,
     existingV9Ids: [],
     activePlan: { id: 'p1', source: 'legacy', legacy_fingerprint: first.planAction.fingerprint },
+    hasLegacyPlan: true,
   });
   assert.equal(again.planAction.type, 'none');
 });
@@ -55,6 +56,7 @@ test('replaces a legacy plan that changed in the web app, never a plan made in t
     overrides: changed,
     existingV9Ids: [],
     activePlan: { id: 'p1', source: 'legacy', legacy_fingerprint: 'old' },
+    hasLegacyPlan: true,
   });
   assert.equal(legacyPlan.planAction.type, 'replace');
   const ownPlan = planLegacySync({
@@ -63,6 +65,7 @@ test('replaces a legacy plan that changed in the web app, never a plan made in t
     overrides: changed,
     existingV9Ids: [],
     activePlan: { id: 'p2', source: 'rules', legacy_fingerprint: null },
+    hasLegacyPlan: true,
   });
   assert.equal(ownPlan.planAction.type, 'none');
 });
@@ -74,9 +77,10 @@ test('deletes copies of activities removed in the web app, but not when the reco
     overrides,
     existingV9Ids: ['v9:strava-1', 'v9:gone', 'other:x'],
     activePlan: null,
+    hasLegacyPlan: false,
   });
   assert.deepEqual(plan.activityDeletes, ['v9:gone']);
-  const empty = planLegacySync({ userId, legacyState: {}, overrides, existingV9Ids: ['v9:strava-1'], activePlan: null });
+  const empty = planLegacySync({ userId, legacyState: {}, overrides, existingV9Ids: ['v9:strava-1'], activePlan: null, hasLegacyPlan: false });
   assert.deepEqual(empty.activityDeletes, []);
 });
 
@@ -95,4 +99,26 @@ test('rows round-trip back to the same activities and plan', () => {
     rows,
   );
   assert.equal(planFingerprint(back), planFingerprint(plan));
+});
+
+test('an edited (detached) copy is kept, and a replaced copy is never re-created', () => {
+  const changed = [...overrides, { training_date: '2026-11-27', activity: 'Recovery run', planned_km: 4, instructions: null }];
+  const detached = planLegacySync({
+    userId,
+    legacyState,
+    overrides: changed,
+    existingV9Ids: [],
+    activePlan: { id: 'p1', source: 'legacy', legacy_fingerprint: 'detached' },
+    hasLegacyPlan: true,
+  });
+  assert.equal(detached.planAction.type, 'none');
+  const replacedThenArchived = planLegacySync({
+    userId,
+    legacyState,
+    overrides,
+    existingV9Ids: [],
+    activePlan: null,
+    hasLegacyPlan: true,
+  });
+  assert.equal(replacedThenArchived.planAction.type, 'none');
 });

@@ -1,8 +1,9 @@
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { ActivityRow, sessionSummary, WeekStrip } from '@/components/sessions';
-import { Card, Pill, Row, Screen, Stat, T } from '@/components/ui';
+import { Button, Card, Pill, Row, Screen, Stat, T } from '@/components/ui';
 import { useStore } from '@/data/store';
 import { addDays, daysBetween, formatDay, today, weekStart } from '@/domain/dates';
 import { GOAL_LABELS } from '@/domain/plan';
@@ -73,7 +74,17 @@ export default function Today() {
       <WeekStrip start={week} selected={selected} onSelect={setSelected} planned={planned} done={done} />
 
       <Card hero>
-        <T variant="eyebrow">{selected === now ? 'Today’s session' : formatDay(selected)}</T>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityHint={plan ? 'Edit, move or add a session' : 'Set a goal'}
+          onPress={() => router.push(plan ? { pathname: '/session', params: { date: selected } } : '/goal')}
+          style={({ pressed }) => [{ gap: 8 }, pressed && { opacity: 0.8 }]}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <T variant="eyebrow">{selected === now ? 'Today’s session' : formatDay(selected)}</T>
+          <T variant="small" style={{ color: colors.accent }}>
+            {plan ? (session ? 'Edit ›' : 'Add ›') : 'Set a goal ›'}
+          </T>
+        </Row>
         {session ? (
           <>
             <T variant="h2" style={{ fontSize: 22 }}>
@@ -94,15 +105,30 @@ export default function Today() {
             </T>
           </>
         )}
+        </Pressable>
         {doneThatDay.length ? (
           <View style={{ marginTop: 4 }}>
             <T variant="eyebrow">Completed</T>
             {doneThatDay.map((a) => (
-              <ActivityRow key={a.id} a={a} />
+              <ActivityRow key={a.id} a={a} onPress={() => router.push({ pathname: '/log', params: { id: a.id } })} />
             ))}
           </View>
         ) : null}
       </Card>
+
+      <Row>
+        <View style={{ flex: 1 }}>
+          <Button
+            label="Log a workout"
+            onPress={() => router.push({ pathname: '/log', params: { date: selected <= now ? selected : now } })}
+          />
+        </View>
+        {!plan ? (
+          <View style={{ flex: 1 }}>
+            <Button label="Set a goal" kind="secondary" onPress={() => router.push('/goal')} />
+          </View>
+        ) : null}
+      </Row>
 
       <Card>
         <T variant="eyebrow">Last 7 days</T>
@@ -126,7 +152,7 @@ export default function Today() {
         <Card>
           <T variant="eyebrow">Recent activity</T>
           {activities.slice(0, 5).map((a) => (
-            <ActivityRow key={a.id} a={a} />
+            <ActivityRow key={a.id} a={a} onPress={() => router.push({ pathname: '/log', params: { id: a.id } })} />
           ))}
         </Card>
       ) : null}

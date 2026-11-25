@@ -30,9 +30,9 @@ Supabase Edge Functions (Deno, TypeScript)
 ## Milestones
 | # | Milestone | Result | Needs from you |
 |---|-----------|--------|----------------|
-| 1 | Foundation | Expo app in `app/`, Evergreen design system, sign-in, Today/Training/Progress screens on real Supabase data; runs on web for quick testing | — |
-| 2 | Data model | New per-record tables (migrations reviewed before applying), import of the old JSON blob + Strava CSV | Approve migrations on production |
-| 3 | Goals and plans | v9 goal planner ported and tested; editable plan; logging | — |
+| 1 ✅ | Foundation | Expo app in `app/`, Evergreen design system, sign-in, Today/Training/Progress screens on real Supabase data; runs on web for quick testing | — |
+| 2 ✅ | Data model | New per-record tables (migrations reviewed before applying), import of the old JSON blob + Strava CSV | Approve migrations on production |
+| 3 ✅ | Goals and plans | v9 goal planner ported and tested; editable plan; logging | — |
 | 4 | Apple Health | Native HealthKit read of workouts, sleep, HRV and resting HR; background sync; dedup | Apple Developer account, Expo account, iPhone for testing |
 | 5 | Coach | Daily readiness, weekly review, approve-able plan changes, chat | Anthropic API key (stored as a Supabase secret) |
 | 6 | Launch prep | Onboarding, consent, privacy policy, export/delete account, TestFlight beta | App Store listing details |

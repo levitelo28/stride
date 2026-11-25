@@ -5,8 +5,9 @@
  * Changes from v9:
  * - Progression only advances on build weeks, so the week after a recovery week
  *   no longer jumps ~15% above the last build week.
- * - The long run is capped at 45% of weekly volume (3 or fewer run days) or 38% (4–5 days);
- *   v9 allowed up to 49%.
+ * - The long run is capped at a share of the week (50% for marathons, 45% with 3 or fewer
+ *   run days, otherwise 40%), but never drops below the user's current long run outside
+ *   recovery and taper weeks.
  * - Strength days honour the requested count (v9 capped running plans at 2).
  */
 import { addDays, isISODate, weekStart } from './dates';
@@ -84,7 +85,7 @@ export function buildPlan(input: GoalInput, asOf: ISODate): Plan {
     const strengthDays = STRENGTH_PREF.filter((d) => !runDays.includes(d)).slice(0, goal.strengthDays);
     const base = Math.max(6, goal.baseWeeklyKm || 8);
     const baseLong = Math.max(3, Math.min(goal.currentLongestKm || 4, base * 0.55));
-    const longShare = goal.runDays <= 3 ? 0.45 : 0.38;
+    const longShare = goal.type === 'marathon' ? 0.5 : goal.runDays <= 3 ? 0.45 : 0.4;
     let build = 0; // number of completed build weeks; recovery weeks don't advance it
 
     for (let k = 0; k < weeks; k++) {
@@ -93,13 +94,10 @@ export function buildPlan(input: GoalInput, asOf: ISODate): Plan {
       const taper = k === weeks - 2 ? 0.68 : k === weeks - 1 ? 0.4 : 1;
       const level = Math.min(PEAK_WEEK[goal.type], base * WEEKLY_GROWTH ** build);
       const target = round1(level * (recovery ? 0.8 : 1) * taper);
-      const longest = round1(
-        Math.min(
-          IDEAL_LONGEST[goal.type],
-          baseLong * LONG_RUN_GROWTH ** build * (recovery ? 0.78 : 1) * taper,
-          target * longShare,
-        ),
-      );
+      const easing = (recovery ? 0.78 : 1) * taper;
+      const grown = baseLong * LONG_RUN_GROWTH ** build * easing;
+      const floor = baseLong * easing; // what the user already runs, eased only in recovery/taper weeks
+      const longest = round1(Math.min(IDEAL_LONGEST[goal.type], Math.max(floor, Math.min(grown, target * longShare))));
       if (!recovery) build++;
 
       // Split the rest of the week evenly across the other run days (min 1 km each).

@@ -6,6 +6,7 @@
 import { fromLegacyState, legacyActivities, type OverrideRow } from './legacy';
 import {
   activityToRow,
+  DETACHED,
   planFingerprint,
   sleepToRow,
   V9_PREFIX,
@@ -22,6 +23,8 @@ export interface LegacySyncInput {
   /** external_id values of activities already copied from v9 (all start with "v9:"). */
   existingV9Ids: string[];
   activePlan: Pick<PlanRow, 'id' | 'source' | 'legacy_fingerprint'> | null;
+  /** True if a copied web-app plan was ever stored (active or archived). */
+  hasLegacyPlan: boolean;
 }
 
 export type PlanAction =
@@ -38,7 +41,7 @@ export interface LegacySyncPlan {
 }
 
 export function planLegacySync(input: LegacySyncInput): LegacySyncPlan {
-  const { userId, legacyState, overrides, existingV9Ids, activePlan } = input;
+  const { userId, legacyState, overrides, existingV9Ids, activePlan, hasLegacyPlan } = input;
 
   const byExternal = new Map<string, ActivityRow>();
   for (const a of legacyActivities(legacyState)) {
@@ -59,10 +62,15 @@ export function planLegacySync(input: LegacySyncInput): LegacySyncPlan {
   let planAction: PlanAction = { type: 'none' };
   if (legacy.plan && Object.keys(legacy.plan.sessions).length) {
     const fingerprint = planFingerprint(legacy.plan);
-    if (!activePlan) planAction = { type: 'create', plan: legacy.plan, fingerprint };
-    else if (activePlan.source === 'legacy' && activePlan.legacy_fingerprint !== fingerprint)
+    // Copy the web-app plan only once: if the user has since replaced it, don't bring it back.
+    if (!activePlan && !hasLegacyPlan) planAction = { type: 'create', plan: legacy.plan, fingerprint };
+    else if (
+      activePlan?.source === 'legacy' &&
+      activePlan.legacy_fingerprint !== DETACHED &&
+      activePlan.legacy_fingerprint !== fingerprint
+    )
       planAction = { type: 'replace', planId: activePlan.id, plan: legacy.plan, fingerprint };
-    // A plan created in the new app (rules/coach) is never overwritten by the web app.
+    // Plans created or edited in the new app are never overwritten by the web app.
   }
 
   return { activityUpserts, activityDeletes, metricUpserts, planAction };

@@ -3,6 +3,8 @@ import { addDays, today } from '@/domain/dates';
 import type { OverrideRow } from '@/domain/legacy';
 import {
   activityFromRow,
+  activityToRow,
+  DETACHED,
   planFromRows,
   sessionToRow,
   sleepFromRows,
@@ -14,7 +16,7 @@ import {
 } from '@/domain/rows';
 import { dedupeActivities } from '@/domain/stats';
 import { planLegacySync } from '@/domain/sync';
-import type { UserData } from '@/domain/types';
+import type { Activity, Plan, PlannedSession, UserData } from '@/domain/types';
 import { supabase } from '@/lib/supabase';
 
 const PAGE = 1000; // PostgREST's default maximum rows per request
@@ -64,7 +66,7 @@ export interface SyncReport {
  * rows are keyed by "v9:" external IDs, and plans made in the new app are never touched.
  */
 export async function syncFromWebApp(userId: string): Promise<SyncReport> {
-  const [state, overrides, existing, plan] = await Promise.all([
+  const [state, overrides, existing, plan, legacyPlans] = await Promise.all([
     supabase.from('stride_user_state').select('state').eq('user_id', userId).maybeSingle(),
     supabase
       .from('stride_training_overrides')
@@ -77,8 +79,10 @@ export async function syncFromWebApp(userId: string): Promise<SyncReport> {
       'Reading copied activities',
     ),
     activePlan(userId),
+    supabase.from('plans').select('id').eq('user_id', userId).eq('source', 'legacy').limit(1),
   ]);
   fail(state.error, 'Reading web-app record');
+  fail(legacyPlans.error, 'Reading plans');
   fail(overrides.error, 'Reading web-app plan');
   if (!state.data) return { activities: 0, deleted: 0, sleep: 0, plan: 'none' };
 
@@ -88,6 +92,7 @@ export async function syncFromWebApp(userId: string): Promise<SyncReport> {
     overrides: (overrides.data ?? []) as OverrideRow[],
     existingV9Ids: existing.map((r) => r.external_id),
     activePlan: plan,
+    hasLegacyPlan: (legacyPlans.data ?? []).length > 0,
   });
 
   for (let i = 0; i < sync.activityUpserts.length; i += CHUNK) {
@@ -187,4 +192,65 @@ export async function loadUserData(userId: string): Promise<UserData> {
     sleep: sleepFromRows(metrics),
     plan: plan ? planFromRows(plan, sessions) : null,
   };
+}
+
+// ---- Writes from the app's own screens ----
+
+/** Archive the active plan and save `plan` as the new active plan, atomically (database function). */
+export async function replacePlan(plan: Plan): Promise<void> {
+  const sessions = Object.values(plan.sessions).map((s) => {
+    const { plan_id: _p, user_id: _u, edited: _e, ...row } = sessionToRow(s, '', '');
+    return row;
+  });
+  const { error } = await supabase.rpc('stride_replace_active_plan', {
+    p_goal: plan.goal,
+    p_warnings: plan.warnings,
+    p_sessions: sessions,
+  });
+  fail(error, 'Saving plan');
+}
+
+/** Insert or update one planned session. Editing a copied web-app plan detaches it from the web app. */
+export async function saveSession(plan: Plan, session: PlannedSession, userId: string): Promise<void> {
+  if (!plan.id) throw new Error('This plan has not been saved yet');
+  const { plan_id, user_id, ...fields } = sessionToRow(session, plan.id, userId);
+  if (session.id) {
+    const { error } = await supabase.from('plan_sessions').update(fields).eq('id', session.id);
+    fail(error, 'Saving session');
+  } else {
+    const { error } = await supabase.from('plan_sessions').insert({ plan_id, user_id, ...fields });
+    fail(error, 'Adding session');
+  }
+  await detachIfCopied(plan);
+}
+
+export async function deleteSession(plan: Plan, session: PlannedSession): Promise<void> {
+  if (!session.id) throw new Error('This session has not been saved yet');
+  const { error } = await supabase.from('plan_sessions').delete().eq('id', session.id);
+  fail(error, 'Removing session');
+  await detachIfCopied(plan);
+}
+
+async function detachIfCopied(plan: Plan): Promise<void> {
+  if (plan.source !== 'legacy' || !plan.id) return;
+  const { error } = await supabase.from('plans').update({ legacy_fingerprint: DETACHED }).eq('id', plan.id);
+  fail(error, 'Updating plan');
+}
+
+/** Log or update a workout entered in this app (never a copy from the web app). */
+export async function saveActivity(activity: Omit<Activity, 'id'> & { id?: string }, userId: string): Promise<void> {
+  if (activity.fromWebApp) throw new Error('Edit this workout in the web app');
+  const { user_id, external_id: _x, ...fields } = activityToRow({ id: '', ...activity }, userId, null);
+  if (activity.id) {
+    const { error } = await supabase.from('activities').update(fields).eq('id', activity.id).is('external_id', null);
+    fail(error, 'Saving workout');
+  } else {
+    const { error } = await supabase.from('activities').insert({ user_id, ...fields });
+    fail(error, 'Logging workout');
+  }
+}
+
+export async function deleteActivity(id: string): Promise<void> {
+  const { error } = await supabase.from('activities').delete().eq('id', id).is('external_id', null);
+  fail(error, 'Deleting workout');
 }
