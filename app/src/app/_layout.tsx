@@ -1,5 +1,8 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { Platform } from 'react-native';
+
+import { AuthLinkHandler } from '@/components/auth-link-handler';
 
 import { StoreProvider } from '@/data/store';
 import { colors } from '@/theme';
@@ -14,6 +17,7 @@ export default function RootLayout() {
     <ThemeProvider value={theme}>
       <StoreProvider>
         <StatusBar style="light" />
+        {Platform.OS !== 'web' ? <AuthLinkHandler /> : null}
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.base } }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="sign-in" />

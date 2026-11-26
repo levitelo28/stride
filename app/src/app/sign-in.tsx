@@ -1,3 +1,4 @@
+import * as Linking from 'expo-linking';
 import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { Platform, StyleSheet, TextInput, View } from 'react-native';
@@ -25,7 +26,8 @@ export default function SignIn() {
     setMessage(null);
     const { error } = await supabase.auth.signInWithOtp({
       email: address,
-      options: Platform.OS === 'web' ? { emailRedirectTo: window.location.origin } : undefined,
+      // The link must come back to where the user is: this page on the web, the app (stride://) on a phone.
+      options: { emailRedirectTo: Platform.OS === 'web' ? window.location.origin : Linking.createURL('/') },
     });
     setBusy(false);
     if (error) return setMessage(error.message);
@@ -70,8 +72,9 @@ export default function SignIn() {
           <>
             <T variant="h2">Check your email</T>
             <T variant="muted">
-              We sent a sign-in link to {email.trim()}. Open it on this device, or enter the 6-digit code if the email
-              includes one.
+              We sent a sign-in link to {email.trim()}. Open the email on this {Platform.OS === 'web' ? 'device' : 'phone'} and
+              tap the link{Platform.OS === 'web' ? '' : '; it opens Stride and signs you in'}. If the email shows a
+              6-digit code instead, enter it below.
             </T>
             <TextInput
               value={code}
