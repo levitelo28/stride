@@ -52,6 +52,17 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#0B1914"
+    "backgroundColor": "#0B1914",
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "66aa9ac9-58a9-4398-ae2e-8a8dafd52f82"
+      }
+    },
+    "owner": "levitelo28"
   }
 }
