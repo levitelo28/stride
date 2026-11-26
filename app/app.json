@@ -11,7 +11,9 @@
       "icon": "./assets/expo.icon",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "bundleIdentifier": "com.stridehealth.app",
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
