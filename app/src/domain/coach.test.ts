@@ -43,6 +43,14 @@ test('coach input is a compact summary with six weeks, load, upcoming sessions a
   assert.ok(input.upcoming.every((s) => s.date >= today && s.date <= addDays(today, 13)));
   assert.equal(input.goal?.type, 'half');
   assert.ok(JSON.stringify(input).length < 20_000);
+  // Planned run days so far in the last 14 days (Nov 12-25) and how many had a logged run.
+  const plannedDays = Object.values(plan.sessions).filter(
+    (s) => ['run', 'long', 'event'].includes(s.kind) && s.date >= '2026-11-12' && s.date <= today,
+  );
+  assert.equal(input.totals.last14Days.plannedRuns, plannedDays.length);
+  assert.equal(input.totals.last14Days.completedRuns, plannedDays.filter((s) => ['2026-11-22', '2026-11-18'].includes(s.date)).length);
+  assert.equal(input.totals.last14Days.runKm, 18);
+  assert.deepEqual(input.totals.allTime, { runs: 2, runKm: 18 });
 });
 
 test('insights flag missed sessions, a load spike, short sleep and hard efforts', () => {

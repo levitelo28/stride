@@ -25,6 +25,11 @@ export interface CoachInput {
   recent: { date: ISODate; kind: string; km: number | null; minutes: number | null; rpe: number | null; notes: string | null }[];
   upcoming: { date: ISODate; kind: SessionKind; label: string; km: number | null; minutes: number | null }[];
   insights: { id: string; tone: Insight['tone']; title: string }[];
+  /** Pre-computed counts, so the coach quotes them instead of re-adding the tables. */
+  totals: {
+    last14Days: { plannedRuns: number; completedRuns: number; runKm: number };
+    allTime: { runs: number; runKm: number };
+  };
 }
 
 export interface Insight {
@@ -108,6 +113,24 @@ export function computeInsights(data: UserData, today: ISODate): Insight[] {
   return out;
 }
 
+function totals(data: UserData, today: ISODate): CoachInput['totals'] {
+  const from = addDays(today, -13);
+  const runs = data.activities.filter(isRun);
+  const recentRuns = runs.filter((a) => a.date >= from && a.date <= today);
+  const runDates = new Set(recentRuns.map((a) => a.date));
+  const planned = Object.values(data.plan?.sessions ?? {}).filter(
+    (s) => runKinds.includes(s.kind) && s.date >= from && s.date <= today,
+  );
+  return {
+    last14Days: {
+      plannedRuns: planned.length,
+      completedRuns: planned.filter((s) => runDates.has(s.date)).length,
+      runKm: r1(recentRuns.reduce((t, a) => t + (a.distanceKm ?? 0), 0)),
+    },
+    allTime: { runs: runs.length, runKm: r1(runs.reduce((t, a) => t + (a.distanceKm ?? 0), 0)) },
+  };
+}
+
 export function buildCoachInput(data: UserData, today: ISODate): CoachInput {
   const thisWeek = weekStart(today);
   const weeks = Array.from({ length: 6 }, (_, i) => weekStats(data, addDays(thisWeek, -7 * (5 - i)), today));
@@ -145,5 +168,6 @@ export function buildCoachInput(data: UserData, today: ISODate): CoachInput {
       .sort((a, b) => (a.date < b.date ? -1 : 1))
       .map((s) => ({ date: s.date, kind: s.kind, label: s.label, km: s.distanceKm ?? null, minutes: s.minutes ?? null })),
     insights: computeInsights(data, today).map(({ id, tone, title }) => ({ id, tone, title })),
+    totals: totals(data, today),
   };
 }
