@@ -83,6 +83,20 @@ test('proposals: safe reductions and moves pass; past dates, race day and clashe
   assert.ok(checkProposal(plan, acts, p({ action: 'remove', date: runDay }), today).ok);
 });
 
+test('recovery: resting HR up or HRV down vs your own baseline raises a watch signal', () => {
+  const series = (base: number, last: number) =>
+    Array.from({ length: 35 }, (_, i) => ({ date: addDays(today, -34 + i), value: i >= 28 ? last : base }));
+  const tired: UserData = { activities: [], plan: null, sleep: [], restingHr: series(50, 57), hrv: series(60, 45) };
+  const input = buildCoachInput(tired, today);
+  assert.deepEqual(input.recovery, { restingHr7: 57, restingHrBaseline: 50, hrv7: 45, hrvBaseline: 60 });
+  const ids = computeInsights(tired, today).map((i) => i.id);
+  assert.ok(ids.includes('rhr-up') && ids.includes('hrv-down'), ids.join());
+  const fresh: UserData = { activities: [], plan: null, sleep: [], restingHr: series(50, 49), hrv: series(60, 66) };
+  assert.ok(computeInsights(fresh, today).some((i) => i.id === 'recovery-good'));
+  const none = buildCoachInput({ activities: [], plan: null, sleep: [] }, today);
+  assert.deepEqual(none.recovery, { restingHr7: null, restingHrBaseline: null, hrv7: null, hrvBaseline: null });
+});
+
 test('proposals: big jumps in weekly or long-run distance are refused', () => {
   const acts = [run('2026-11-22', 12)];
   const runDay = Object.keys(plan.sessions).find((d) => d >= today && plan.sessions[d].kind === 'run')!;

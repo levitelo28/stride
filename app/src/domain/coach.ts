@@ -3,7 +3,7 @@
  * `buildCoachInput` is the only data the AI coach ever sees: a compact summary, not raw records.
  */
 import { addDays, daysBetween, weekStart } from './dates';
-import type { Activity, ISODate, Plan, SessionKind, SleepEntry, UserData } from './types';
+import type { Activity, DailyValue, ISODate, Plan, SessionKind, SleepEntry, UserData } from './types';
 
 export interface CoachWeek {
   weekStart: ISODate;
@@ -25,6 +25,8 @@ export interface CoachInput {
   recent: { date: ISODate; kind: string; km: number | null; minutes: number | null; rpe: number | null; notes: string | null }[];
   upcoming: { date: ISODate; kind: SessionKind; label: string; km: number | null; minutes: number | null }[];
   insights: { id: string; tone: Insight['tone']; title: string }[];
+  /** Apple Health recovery signals: 7-day averages vs the prior 28-day baseline. Null without enough data. */
+  recovery: { restingHr7: number | null; restingHrBaseline: number | null; hrv7: number | null; hrvBaseline: number | null };
   /** Pre-computed counts, so the coach quotes them instead of re-adding the tables. */
   totals: {
     last14Days: { plannedRuns: number; completedRuns: number; runKm: number };
@@ -69,6 +71,24 @@ function sleepAvg(sleep: SleepEntry[], from: ISODate, to: ISODate): { avg: numbe
   return { avg: nights.length ? r1(nights.reduce((t, s) => t + s.hours, 0) / nights.length) : null, n: nights.length };
 }
 
+/** Mean of values in [from, to], or null with fewer than `min` days of data. */
+function meanBetween(series: DailyValue[] | undefined, from: ISODate, to: ISODate, min: number): number | null {
+  const v = (series ?? []).filter((x) => x.date >= from && x.date <= to).map((x) => x.value);
+  return v.length >= min ? r1(v.reduce((t, x) => t + x, 0) / v.length) : null;
+}
+
+function recoveryOf(data: UserData, today: ISODate): CoachInput['recovery'] {
+  const week = addDays(today, -6);
+  const baseFrom = addDays(today, -34);
+  const baseTo = addDays(today, -7);
+  return {
+    restingHr7: meanBetween(data.restingHr, week, today, 3),
+    restingHrBaseline: meanBetween(data.restingHr, baseFrom, baseTo, 7),
+    hrv7: meanBetween(data.hrv, week, today, 3),
+    hrvBaseline: meanBetween(data.hrv, baseFrom, baseTo, 7),
+  };
+}
+
 function loadOf(activities: Activity[], today: ISODate) {
   const km = (from: ISODate) =>
     activities.filter((a) => isRun(a) && a.date >= from && a.date <= today).reduce((t, a) => t + (a.distanceKm ?? 0), 0);
@@ -105,6 +125,13 @@ export function computeInsights(data: UserData, today: ISODate): Insight[] {
     out.push({ id: 'long-run-missed', tone: 'watch', title: 'Long run missed', detail: `No run logged last week against a planned ${lastWeek.longRunPlannedKm} km long run.` });
   if (sleep.avg !== null && sleep.n >= 3 && sleep.avg < 7)
     out.push({ id: 'sleep-low', tone: 'watch', title: 'Short on sleep', detail: `Averaging ${sleep.avg} h over ${sleep.n} nights. Recovery and adaptation suffer below about 7 hours.` });
+  const rec = recoveryOf(data, today);
+  if (rec.restingHr7 !== null && rec.restingHrBaseline !== null && rec.restingHr7 - rec.restingHrBaseline >= 5)
+    out.push({ id: 'rhr-up', tone: 'watch', title: 'Resting heart rate is up', detail: `${rec.restingHr7} bpm this week vs your usual ${rec.restingHrBaseline} bpm. That can mean fatigue, stress or illness coming on; go easy.` });
+  if (rec.hrv7 !== null && rec.hrvBaseline !== null && rec.hrv7 <= rec.hrvBaseline * 0.85)
+    out.push({ id: 'hrv-down', tone: 'watch', title: 'HRV below your normal', detail: `${rec.hrv7} ms this week vs your usual ${rec.hrvBaseline} ms. Your body may not have recovered fully.` });
+  else if (rec.hrv7 !== null && rec.hrvBaseline !== null && rec.hrv7 >= rec.hrvBaseline * 1.05 && (rec.restingHr7 ?? 0) <= (rec.restingHrBaseline ?? Infinity))
+    out.push({ id: 'recovery-good', tone: 'good', title: 'Recovering well', detail: `HRV ${rec.hrv7} ms (usual ${rec.hrvBaseline} ms) with a steady resting heart rate.` });
   const recentRpe = data.activities.filter((a) => a.rpe && a.date >= addDays(today, -6) && a.date <= today).map((a) => a.rpe!);
   if (recentRpe.length >= 2 && recentRpe.reduce((t, x) => t + x, 0) / recentRpe.length >= 8)
     out.push({ id: 'effort-high', tone: 'watch', title: 'Workouts feel hard', detail: 'Your recent effort ratings average 8+ out of 10. Most running should feel easy (3–5).' });
@@ -169,5 +196,6 @@ export function buildCoachInput(data: UserData, today: ISODate): CoachInput {
       .map((s) => ({ date: s.date, kind: s.kind, label: s.label, km: s.distanceKm ?? null, minutes: s.minutes ?? null })),
     insights: computeInsights(data, today).map(({ id, tone, title }) => ({ id, tone, title })),
     totals: totals(data, today),
+    recovery: recoveryOf(data, today),
   };
 }

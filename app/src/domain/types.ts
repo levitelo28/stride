@@ -73,8 +73,16 @@ export interface SleepEntry {
 }
 
 /** Everything the screens need for one user. */
+export interface DailyValue {
+  date: ISODate;
+  value: number;
+}
+
 export interface UserData {
   activities: Activity[];
   plan: Plan | null;
   sleep: SleepEntry[];
+  /** Daily resting heart rate (bpm) and HRV (SDNN, ms), from Apple Health. Absent when not connected. */
+  restingHr?: DailyValue[];
+  hrv?: DailyValue[];
 }

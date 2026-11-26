@@ -1,5 +1,6 @@
 /** Supabase reads and writes for the new tables. */
 import type { CoachInput } from '@/domain/coach';
+import type { HealthRead } from '@/health/types';
 import { addDays, today } from '@/domain/dates';
 import type { OverrideRow } from '@/domain/legacy';
 import {
@@ -7,6 +8,7 @@ import {
   activityToRow,
   DETACHED,
   planFromRows,
+  seriesFromRows,
   sessionToRow,
   sleepFromRows,
   V9_PREFIX,
@@ -156,7 +158,7 @@ export async function syncFromWebApp(userId: string): Promise<SyncReport> {
 }
 
 export async function loadUserData(userId: string): Promise<UserData> {
-  const sleepSince = addDays(today(), -90);
+  const metricsSince = addDays(today(), -90);
   const [activities, metrics, plan] = await Promise.all([
     all<ActivityRow>(
       (from, to) =>
@@ -175,10 +177,10 @@ export async function loadUserData(userId: string): Promise<UserData> {
           .from('daily_metrics')
           .select('user_id,local_date,metric,value,source')
           .eq('user_id', userId)
-          .eq('metric', 'sleep_hours')
-          .gte('local_date', sleepSince)
+          .in('metric', ['sleep_hours', 'resting_hr', 'hrv_sdnn_ms'])
+          .gte('local_date', metricsSince)
           .range(from, to),
-      'Loading sleep',
+      'Loading daily metrics',
     ),
     activePlan(userId),
   ]);
@@ -192,6 +194,8 @@ export async function loadUserData(userId: string): Promise<UserData> {
   return {
     activities: dedupeActivities(activities.map(activityFromRow)),
     sleep: sleepFromRows(metrics),
+    restingHr: seriesFromRows(metrics, 'resting_hr'),
+    hrv: seriesFromRows(metrics, 'hrv_sdnn_ms'),
     plan: plan ? planFromRows(plan, sessions) : null,
   };
 }
@@ -310,4 +314,39 @@ export async function requestReview(input: CoachInput): Promise<SavedReview> {
   }
   const d = data as { review: CoachReview; created_at: string };
   return { review: d.review, createdAt: d.created_at };
+}
+
+// ---- Apple Health ----
+
+/** Write one Health read to the tables. Idempotent: workouts are keyed by their HealthKit UUID. */
+export async function writeHealth(userId: string, read: HealthRead): Promise<void> {
+  const rows = read.activities.map((a) => activityToRow(a, userId, a.id));
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error } = await supabase
+      .from('activities')
+      .upsert(rows.slice(i, i + CHUNK), { onConflict: 'user_id,source,external_id' });
+    fail(error, 'Saving Health workouts');
+  }
+  for (let i = 0; i < read.deletedIds.length; i += CHUNK) {
+    const { error } = await supabase
+      .from('activities')
+      .delete()
+      .eq('user_id', userId)
+      .eq('source', 'apple_health')
+      .in('external_id', read.deletedIds.slice(i, i + CHUNK));
+    fail(error, 'Removing deleted Health workouts');
+  }
+  const metric = (m: MetricRow['metric'], list: { date: string; value: number }[]): MetricRow[] =>
+    list.map((x) => ({ user_id: userId, local_date: x.date, metric: m, value: x.value, source: 'apple_health' }));
+  const metrics = [
+    ...metric('sleep_hours', read.sleep.map((s) => ({ date: s.date, value: s.hours }))),
+    ...metric('resting_hr', read.restingHr),
+    ...metric('hrv_sdnn_ms', read.hrv),
+  ];
+  for (let i = 0; i < metrics.length; i += CHUNK) {
+    const { error } = await supabase
+      .from('daily_metrics')
+      .upsert(metrics.slice(i, i + CHUNK), { onConflict: 'user_id,local_date,metric,source' });
+    fail(error, 'Saving Health metrics');
+  }
 }

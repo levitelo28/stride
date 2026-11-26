@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
+import { connectAndSync, disconnectHealth, healthStatus, syncHealth, type HealthStatus } from '@/data/health-sync';
 import * as repo from '@/data/repo';
 import { loadUserData, syncFromWebApp } from '@/data/repo';
 import { today } from '@/domain/dates';
@@ -27,6 +28,10 @@ interface StoreValue {
   deleteSession: (date: ISODate) => Promise<void>;
   saveActivity: (activity: Omit<Activity, 'id'> & { id?: string }) => Promise<void>;
   deleteActivity: (id: string) => Promise<void>;
+  /** Apple Health (iPhone only). */
+  health: HealthStatus;
+  connectHealth: () => Promise<number>;
+  disconnectHealth: () => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -40,6 +45,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const inFlight = useRef<Promise<void> | null>(null);
+  const [healthTick, setHealthTick] = useState(0);
 
   const load = useCallback((s: Session) => {
     // getSession and onAuthStateChange both fire at startup; run one load at a time.
@@ -52,6 +58,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await syncFromWebApp(s.user.id).catch((e) => {
           syncError = `Web-app sync failed: ${message(e, 'unknown error')}`;
         });
+        if (healthStatus(s.user.id).connected)
+          await syncHealth(s.user.id).catch((e) => {
+            syncError = `Apple Health sync failed: ${message(e, 'unknown error')}`;
+          });
         setData(await loadUserData(s.user.id));
         setError(syncError);
       } catch (e) {
@@ -157,8 +167,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await repo.deleteActivity(id);
         await reload();
       },
+
+      health: healthStatus(session?.user.id),
+      connectHealth: async () => {
+        if (!session) throw new Error('Sign in to connect Apple Health');
+        const n = await connectAndSync(session.user.id);
+        await reload();
+        return n;
+      },
+      disconnectHealth: () => {
+        if (session) disconnectHealth(session.user.id);
+        setHealthTick((t) => t + 1);
+      },
     }),
-    [mode, session, data, error, refreshing, load, reload],
+    // healthTick: re-read device-stored Health status after connect/disconnect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mode, session, data, error, refreshing, load, reload, healthTick],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

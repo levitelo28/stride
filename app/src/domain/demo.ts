@@ -54,7 +54,16 @@ export function demoData(asOf: ISODate): UserData {
     hours: Math.round((6.4 + rand() * 1.8) * 10) / 10,
     source: 'apple_health' as const,
   }));
-  return { activities, plan, sleep };
+  // Recovery data as if from Apple Watch: a steady baseline with a slightly tired last few days.
+  const restingHr = Array.from({ length: 35 }, (_, i) => ({
+    date: addDays(asOf, -34 + i),
+    value: Math.round(52 + rand() * 3 + (i >= 31 ? 3 : 0)),
+  }));
+  const hrv = Array.from({ length: 35 }, (_, i) => ({
+    date: addDays(asOf, -34 + i),
+    value: Math.round(58 + rand() * 8 - (i >= 31 ? 8 : 0)),
+  }));
+  return { activities, plan, sleep, restingHr, hrv };
 }
 
 /** A canned review for sample mode (the real coach needs an account). Proposals target the sample plan. */

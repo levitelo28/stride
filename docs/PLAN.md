@@ -33,7 +33,7 @@ Supabase Edge Functions (Deno, TypeScript)
 | 1 ✅ | Foundation | Expo app in `app/`, Evergreen design system, sign-in, Today/Training/Progress screens on real Supabase data; runs on web for quick testing | — |
 | 2 ✅ | Data model | New per-record tables (migrations reviewed before applying), import of the old JSON blob + Strava CSV | Approve migrations on production |
 | 3 ✅ | Goals and plans | v9 goal planner ported and tested; editable plan; logging | — |
-| 4 | Apple Health | Native HealthKit read of workouts, sleep, HRV and resting HR; background sync; dedup | Apple Developer account, Expo account, iPhone for testing |
+| 4 🔧 | Apple Health | Native HealthKit read of workouts, sleep, HRV and resting HR; background sync; dedup | Apple Developer account, Expo account, iPhone for testing |
 | 5 ✅ | Coach | Daily readiness, weekly review, approve-able plan changes, chat | Anthropic API key (stored as a Supabase secret) |
 | 6 | Launch prep | Onboarding, consent, privacy policy, export/delete account, TestFlight beta | App Store listing details |
 | 7 | Android | Health Connect, Play Store | Google Play account ($25 once) |
@@ -42,3 +42,14 @@ Supabase Edge Functions (Deno, TypeScript)
 - **Apple Developer Program:** enroll at developer.apple.com/programs. Individual is fastest; enrolling as a company needs a D-U-N-S number.
 - **Expo account:** expo.dev (free). Lets us build iPhone apps from Windows.
 - **Anthropic API key:** platform.claude.com → API keys, with a monthly spend limit set.
+
+## Apple Health status (milestone 4)
+Code is complete and tested off-device; it has **not yet run on an iPhone**.
+- `app/src/domain/health.ts`: maps workouts, sleep (Watch stages first, sources merged, naps excluded), resting HR and HRV. Unit-tested.
+- `app/src/health/index.ios.ts`: reads HealthKit via `@kingstinct/react-native-healthkit` (read-only; anchored workout sync with deletions; 30-day re-read of sleep and metrics).
+- Syncs on every app open once connected (Settings → Apple Health). The coach uses resting HR and HRV against your own baseline.
+
+First iPhone build (needs the Apple Developer account):
+1. `npx eas-cli@latest login`
+2. In `app/`: `npx eas-cli@latest build --profile development --platform ios`. It asks for a bundle identifier (e.g. `com.yourname.stride`) and your Apple account, then creates the certificates.
+3. Register your iPhone when prompted (or with `npx eas-cli@latest device:create`), install the build from the link, and run `npx expo start` to load the app.

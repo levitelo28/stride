@@ -2,7 +2,7 @@
  * Conversions between database rows (supabase/migrations/20261126000000_core_tables.sql)
  * and the app's domain types. Pure functions, unit-tested.
  */
-import type { Activity, ActivityKind, ActivitySource, GoalInput, ISODate, Plan, PlannedSession, SessionKind, SleepEntry } from './types';
+import type { Activity, ActivityKind, ActivitySource, DailyValue, GoalInput, ISODate, Plan, PlannedSession, SessionKind, SleepEntry } from './types';
 
 export interface ActivityRow {
   id?: string;
@@ -101,10 +101,27 @@ export function sleepToRow(s: SleepEntry, userId: string): MetricRow {
   return { user_id: userId, local_date: s.date, metric: 'sleep_hours', value: s.hours, source: s.source };
 }
 
+const SOURCE_RANK: Record<ActivitySource, number> = { apple_health: 0, health_connect: 0, manual: 1, strava_csv: 2, legacy: 3 };
+
+/** One sleep entry per night; a device measurement beats a manual entry for the same night. */
 export function sleepFromRows(rows: MetricRow[]): SleepEntry[] {
+  const best = new Map<ISODate, MetricRow>();
+  for (const r of rows) {
+    if (r.metric !== 'sleep_hours') continue;
+    const prev = best.get(r.local_date);
+    if (!prev || SOURCE_RANK[r.source] < SOURCE_RANK[prev.source]) best.set(r.local_date, r);
+  }
+  return [...best.values()]
+    .map((r) => ({ date: r.local_date, hours: Number(r.value), source: r.source }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+/** Daily series for one metric (resting HR, HRV), oldest first. */
+export function seriesFromRows(rows: MetricRow[], metric: MetricRow['metric']): DailyValue[] {
   return rows
-    .filter((r) => r.metric === 'sleep_hours')
-    .map((r) => ({ date: r.local_date, hours: Number(r.value), source: r.source }));
+    .filter((r) => r.metric === metric)
+    .map((r) => ({ date: r.local_date, value: Number(r.value) }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
 export function sessionToRow(s: PlannedSession, planId: string, userId: string): PlanSessionRow {
