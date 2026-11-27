@@ -1,6 +1,9 @@
 # Static site: no build step. Netlify serves the stride-v9 folder as-is.
 [build]
   publish = "stride-v9"
+  # Each production deploy costs Netlify credits. Only deploy when the website itself changes: pushes that touch
+  # just the iPhone app (app/), the backend (supabase/) or docs are skipped. Exit 0 = skip, 1 = build.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- stride-v9/ netlify.toml"
 
 # The service worker must never be cached by the browser/CDN, or users get stuck on old versions.
 [[headers]]
