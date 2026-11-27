@@ -64,6 +64,7 @@ First iPhone build (needs the Apple Developer account):
 - ⏳ Not yet tested on device: deleting a throwaway account.
 - ✅ App icon (Stride arrow) replaces Expo's placeholder.
 - ✅ App Store Connect app created (ID 6840148569); first production build (build 2) uploaded 2026-11-27 with `npx eas-cli@latest build --platform ios --profile production --auto-submit`.
+- Build 2 rejected on upload (ITMS-90683, missing NSHealthUpdateUsageDescription); fixed in build 3, uploaded 2026-11-27.
 - ⏳ TestFlight internal testing group, install on iPhone.
 - To do before external testers / App Store: App Privacy answers, support URL, screenshots, description.
 
