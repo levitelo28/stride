@@ -26,3 +26,13 @@ export function parseAuthLink(url: string | null | undefined): AuthLink {
   if (code) return { kind: 'code', code };
   return null;
 }
+
+/**
+ * True for errors worth retrying: the request never reached Supabase (e.g. iOS cancels in-flight
+ * requests while Mail hands the link over to the app), as opposed to Supabase rejecting the link.
+ */
+export function isNetworkError(error: { name?: string; message?: string; status?: number } | null | undefined): boolean {
+  if (!error) return false;
+  if (error.name === 'AuthRetryableFetchError') return true;
+  return /fetch failed|network request failed|cancelled|canceled|timed out|offline/i.test(error.message ?? '');
+}
