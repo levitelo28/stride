@@ -46,7 +46,7 @@ Supabase Edge Functions (Deno, TypeScript)
 ## Apple Health status (milestone 4)
 Verified on an iPhone on 2026-11-27: sign-in by emailed link, and a one-year import of 51 workouts (Garmin Connect, Strava, WHOOP) with distances and start times, plus sleep and resting HR. Copies of one run from several apps are stored separately and merged when shown.
 
-Known gap: average heart rate stays empty for Garmin/Strava workouts, because those apps don't attach heart-rate statistics to the workout. Reading heart-rate samples for each workout's time window would fill it.
+Workout heart rate: Garmin/Strava workouts carry no HR statistics, so Stride averages Health's heart-rate readings over each workout's time window (verified 2026-11-27: 49 of 51 workouts have average and peak HR).
 - `app/src/domain/health.ts`: maps workouts, sleep (Watch stages first, sources merged, naps excluded), resting HR and HRV. Unit-tested.
 - `app/src/health/index.ios.ts`: reads HealthKit via `@kingstinct/react-native-healthkit` (read-only; anchored workout sync with deletions; 30-day re-read of sleep and metrics).
 - Syncs on every app open once connected (Settings → Apple Health). The coach uses resting HR and HRV against your own baseline.
