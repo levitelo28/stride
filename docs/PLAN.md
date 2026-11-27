@@ -35,7 +35,7 @@ Supabase Edge Functions (Deno, TypeScript)
 | 3 ✅ | Goals and plans | v9 goal planner ported and tested; editable plan; logging | — |
 | 4 ✅ | Apple Health | Native HealthKit read of workouts, sleep, HRV and resting HR; background sync; dedup | Apple Developer account, Expo account, iPhone for testing |
 | 5 ✅ | Coach | Daily readiness, weekly review, approve-able plan changes, chat | Anthropic API key (stored as a Supabase secret) |
-| 6 | Launch prep | Onboarding, consent, privacy policy, export/delete account, TestFlight beta | App Store listing details |
+| 6 🔧 | Launch prep | Onboarding, consent, privacy policy, export/delete account, TestFlight beta | App Store listing details |
 | 7 | Android | Health Connect, Play Store | Google Play account ($25 once) |
 
 ## Start these now (they take days)
@@ -55,3 +55,11 @@ First iPhone build (needs the Apple Developer account):
 1. `npx eas-cli@latest login`
 2. In `app/`: `npx eas-cli@latest build --profile development --platform ios`. It asks for a bundle identifier (e.g. `com.yourname.stride`) and your Apple account, then creates the certificates.
 3. Register your iPhone when prompted (or with `npx eas-cli@latest device:create`), install the build from the link, and run `npx expo start` to load the app.
+
+## Launch prep status (milestone 6)
+- ✅ First-run intro (goal, Apple Health, AI-coach consent), verified on iPhone 2026-11-27.
+- ✅ Settings → Privacy and data: export as JSON, delete account (`delete-account` function deployed), show intro again.
+- ⏳ Privacy policy page `stride-v9/privacy.html`: drafted; needs the publisher's name and a contact email before it goes live.
+- ⏳ Not yet tested on device: export, and deleting a throwaway account.
+- To do: App Store Connect app record, TestFlight build (`eas build --profile production` + `eas submit`), App Privacy answers, support URL.
+
