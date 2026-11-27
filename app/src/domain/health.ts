@@ -18,6 +18,8 @@ export interface HealthWorkout {
   duration?: HealthQuantity;
   totalDistance?: HealthQuantity;
   totalEnergyBurned?: HealthQuantity;
+  /** Average heart rate during the workout (bpm), from the workout's statistics. */
+  avgHr?: number;
   sourceName?: string;
 }
 
@@ -57,7 +59,17 @@ const KIND_NAME: Record<ActivityKind, string> = {
   other: 'Workout',
 };
 
-const TO_KM: Record<string, number> = { m: 0.001, km: 1, mi: 1.609344, yd: 0.0009144, ft: 0.0003048 };
+const TO_KM: Record<string, number> = {
+  m: 0.001,
+  meter: 0.001,
+  meters: 0.001,
+  km: 1,
+  kilometers: 1,
+  mi: 1.609344,
+  miles: 1.609344,
+  yd: 0.0009144,
+  ft: 0.0003048,
+};
 const TO_SEC: Record<string, number> = { s: 1, min: 60, hr: 3600, ms: 0.001 };
 
 function km(q?: HealthQuantity): number | undefined {
@@ -66,8 +78,20 @@ function km(q?: HealthQuantity): number | undefined {
   return f ? Math.round(q.quantity * f * 1000) / 1000 : undefined;
 }
 
+/** The HealthKit distance type recorded for each kind of workout (asked for so iOS reveals workout distances). */
+export const DISTANCE_TYPE: Partial<Record<ActivityKind, string>> = {
+  run: 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+  walk: 'HKQuantityTypeIdentifierDistanceWalkingRunning',
+  ride: 'HKQuantityTypeIdentifierDistanceCycling',
+  swim: 'HKQuantityTypeIdentifierDistanceSwimming',
+};
+
+export function workoutKind(workoutActivityType: number): ActivityKind {
+  return WORKOUT_KIND[workoutActivityType] ?? 'other';
+}
+
 export function workoutToActivity(w: HealthWorkout): Activity {
-  const kind = WORKOUT_KIND[w.workoutActivityType] ?? 'other';
+  const kind = workoutKind(w.workoutActivityType);
   const durSec =
     w.duration && w.duration.quantity > 0 && TO_SEC[w.duration.unit]
       ? w.duration.quantity * TO_SEC[w.duration.unit]
@@ -75,10 +99,12 @@ export function workoutToActivity(w: HealthWorkout): Activity {
   return {
     id: w.uuid,
     date: localDate(w.startDate),
+    startedAt: w.startDate.toISOString(),
     kind,
     name: w.sourceName ? `${KIND_NAME[kind]} · ${w.sourceName}` : KIND_NAME[kind],
     distanceKm: km(w.totalDistance),
     durationSec: durSec > 0 ? Math.round(durSec) : undefined,
+    avgHr: w.avgHr && w.avgHr >= 20 && w.avgHr <= 250 ? Math.round(w.avgHr) : undefined,
     source: 'apple_health',
   };
 }

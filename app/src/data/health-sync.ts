@@ -5,6 +5,13 @@ import { writeHealth } from './repo';
 
 const key = (userId: string, name: string) => `stride.health.${name}.${userId}`;
 
+/**
+ * Bump when Stride asks Health for more data types or reads workouts differently. Devices on an older
+ * version see Apple's permission sheet once more (only new types are shown) and re-read their workouts.
+ * v2: distance and heart-rate types, so workouts come with their distance, start time and average HR.
+ */
+const READ_VERSION = '2';
+
 function get(k: string): string | null {
   try {
     return globalThis.localStorage?.getItem(k) ?? null;
@@ -35,16 +42,23 @@ export function healthStatus(userId: string | undefined): HealthStatus {
 
 /** Read everything new from Health and save it. The anchor is stored only after the write succeeds. */
 export async function syncHealth(userId: string): Promise<number> {
+  if (get(key(userId, 'version')) !== READ_VERSION) {
+    await connectHealth();
+    set(key(userId, 'anchor'), null);
+  }
   const read = await readHealth(get(key(userId, 'anchor')));
   await writeHealth(userId, read);
   set(key(userId, 'anchor'), read.anchor);
   set(key(userId, 'lastSync'), new Date().toISOString());
+  set(key(userId, 'version'), READ_VERSION);
   return read.activities.length;
 }
 
 export async function connectAndSync(userId: string): Promise<number> {
   await connectHealth();
   set(key(userId, 'connected'), '1');
+  set(key(userId, 'version'), READ_VERSION);
+  set(key(userId, 'anchor'), null);
   return syncHealth(userId);
 }
 
@@ -53,4 +67,5 @@ export function disconnectHealth(userId: string): void {
   set(key(userId, 'connected'), null);
   set(key(userId, 'anchor'), null);
   set(key(userId, 'lastSync'), null);
+  set(key(userId, 'version'), null);
 }

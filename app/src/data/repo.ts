@@ -44,7 +44,7 @@ async function all<T>(
   }
 }
 
-const ACTIVITY_COLUMNS = 'id,user_id,source,external_id,kind,name,local_date,duration_sec,distance_km,avg_hr,rpe,notes';
+const ACTIVITY_COLUMNS = 'id,user_id,source,external_id,kind,name,local_date,started_at,duration_sec,distance_km,avg_hr,rpe,notes';
 const SESSION_COLUMNS = 'plan_id,user_id,local_date,kind,label,distance_km,minutes,note,edited';
 
 async function activePlan(userId: string): Promise<PlanRow | null> {

@@ -12,6 +12,7 @@ export interface ActivityRow {
   kind: ActivityKind;
   name: string | null;
   local_date: ISODate;
+  started_at?: string | null;
   duration_sec: number | null;
   distance_km: number | string | null; // numeric columns come back as strings from PostgREST
   avg_hr: number | null;
@@ -73,6 +74,7 @@ export function activityToRow(a: Activity, userId: string, externalId: string | 
     kind: a.kind,
     name: a.name?.slice(0, 200) ?? null,
     local_date: a.date,
+    started_at: a.startedAt ?? null,
     duration_sec: a.durationSec && a.durationSec > 0 && a.durationSec < 172800 ? Math.round(a.durationSec) : null,
     distance_km: a.distanceKm && a.distanceKm > 0 && a.distanceKm < 1000 ? Math.round(a.distanceKm * 1000) / 1000 : null,
     avg_hr: a.avgHr && a.avgHr >= 20 && a.avgHr <= 250 ? Math.round(a.avgHr) : null,
@@ -85,6 +87,7 @@ export function activityFromRow(r: ActivityRow): Activity {
   return {
     id: r.id ?? `${r.source}:${r.external_id}`,
     date: r.local_date,
+    startedAt: r.started_at ?? undefined,
     kind: r.kind,
     name: r.name ?? undefined,
     distanceKm: n(r.distance_km),

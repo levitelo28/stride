@@ -7,7 +7,7 @@ import {
   requestAuthorization,
 } from '@kingstinct/react-native-healthkit';
 
-import { dailyAverages, sleepNights, workoutToActivity } from '@/domain/health';
+import { DISTANCE_TYPE, dailyAverages, sleepNights, workoutKind, workoutToActivity } from '@/domain/health';
 
 import type { HealthRead } from './types';
 
@@ -15,8 +15,13 @@ export type { HealthRead } from './types';
 
 export const healthSupported = true;
 
+// iOS hides a workout's distance and heart-rate figures unless the app may read those data types too.
 const READ = [
   'HKWorkoutTypeIdentifier',
+  'HKQuantityTypeIdentifierDistanceWalkingRunning',
+  'HKQuantityTypeIdentifierDistanceCycling',
+  'HKQuantityTypeIdentifierDistanceSwimming',
+  'HKQuantityTypeIdentifierHeartRate',
   'HKCategoryTypeIdentifierSleepAnalysis',
   'HKQuantityTypeIdentifierRestingHeartRate',
   'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
@@ -56,19 +61,33 @@ export async function readHealth(anchor: string | null): Promise<HealthRead> {
     queryQuantitySamples('HKQuantityTypeIdentifierHeartRateVariabilitySDNN', { limit: 0, filter: metricsFilter, unit: 'ms' }),
   ]);
 
-  return {
-    activities: workouts.workouts.map((w) =>
-      workoutToActivity({
+  // Newer Watch workouts keep distance in per-type statistics rather than the deprecated totalDistance.
+  const activities = await Promise.all(
+    workouts.workouts.map(async (w) => {
+      const type = Number(w.workoutActivityType);
+      const distanceType = DISTANCE_TYPE[workoutKind(type)];
+      const [distance, heart] = await Promise.all([
+        !w.totalDistance && distanceType
+          ? w.getStatistic(distanceType as Parameters<typeof w.getStatistic>[0], 'm').catch(() => undefined)
+          : undefined,
+        w.getStatistic('HKQuantityTypeIdentifierHeartRate', 'count/min').catch(() => undefined),
+      ]);
+      return workoutToActivity({
         uuid: w.uuid,
-        workoutActivityType: Number(w.workoutActivityType),
+        workoutActivityType: type,
         startDate: w.startDate,
         endDate: w.endDate,
         duration: w.duration,
-        totalDistance: w.totalDistance,
+        totalDistance: w.totalDistance ?? (distance?.sumQuantity ? { quantity: distance.sumQuantity.quantity, unit: 'm' } : undefined),
         totalEnergyBurned: w.totalEnergyBurned,
+        avgHr: heart?.averageQuantity?.quantity,
         sourceName: w.sourceRevision?.source?.name,
-      }),
-    ),
+      });
+    }),
+  );
+
+  return {
+    activities,
     deletedIds: workouts.deletedSamples.map((d) => d.uuid),
     sleep: sleepNights(sleep.map((s) => ({ value: Number(s.value), startDate: s.startDate, endDate: s.endDate }))),
     restingHr: dailyAverages(resting.map((s) => ({ quantity: s.quantity, startDate: s.startDate }))),

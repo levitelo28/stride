@@ -34,6 +34,20 @@ test('workouts map to Stride activities with km and seconds', () => {
   assert.equal(workoutToActivity({ uuid: 'A4', workoutActivityType: 999, startDate: at(22, 9), endDate: at(22, 10) }).kind, 'other');
 });
 
+test('workout distance in "meters" (the library unit), start time and average heart rate are kept', () => {
+  const run = workoutToActivity({
+    uuid: 'B1',
+    workoutActivityType: 37,
+    startDate: at(20, 7),
+    endDate: at(20, 7, 18),
+    totalDistance: { quantity: 3010, unit: 'meters' },
+    avgHr: 151.6,
+  });
+  assert.equal(run.distanceKm, 3.01);
+  assert.equal(run.avgHr, 152);
+  assert.equal(run.startedAt, at(20, 7).toISOString());
+});
+
 test('sleep: Watch stages win over coarser sources, awake time is excluded, night dated by the morning', () => {
   const nights = sleepNights([
     // Apple Watch stages, 23:00 → 06:30

@@ -8,6 +8,8 @@ export type ActivitySource = 'manual' | 'apple_health' | 'health_connect' | 'str
 export interface Activity {
   id: string;
   date: ISODate;
+  /** ISO start time when known (Apple Health); used to spot the same workout recorded by two apps. */
+  startedAt?: string;
   kind: ActivityKind;
   name?: string;
   distanceKm?: number;
