@@ -139,15 +139,6 @@ export default function Today() {
         </Row>
       </Card>
 
-      <Card>
-        <T variant="eyebrow">Automatic sync</T>
-        <T variant="h2">Apple Health is coming to the iPhone app</T>
-        <T variant="muted">
-          Runs, workouts, sleep, resting heart rate and HRV will arrive automatically from Apple Watch, Garmin, Strava
-          and other apps that write to Apple Health.
-        </T>
-      </Card>
-
       {activities.length ? (
         <Card>
           <T variant="eyebrow">Recent activity</T>
