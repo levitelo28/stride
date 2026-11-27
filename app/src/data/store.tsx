@@ -28,6 +28,12 @@ interface StoreValue {
   deleteSession: (date: ISODate) => Promise<void>;
   saveActivity: (activity: Omit<Activity, 'id'> & { id?: string }) => Promise<void>;
   deleteActivity: (id: string) => Promise<void>;
+  /** Account-level settings; null until loaded (and in demo mode). */
+  profile: repo.Profile | null;
+  /** Mark the first-run intro done (or show it again with false). */
+  setOnboarded: (done: boolean) => Promise<void>;
+  /** Permanently delete the account and everything in it, then sign out. */
+  deleteAccount: () => Promise<void>;
   /** Apple Health (iPhone only). */
   health: HealthStatus;
   connectHealth: () => Promise<number>;
@@ -46,6 +52,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [refreshing, setRefreshing] = useState(false);
   const inFlight = useRef<Promise<void> | null>(null);
   const [healthTick, setHealthTick] = useState(0);
+  const [profile, setProfile] = useState<repo.Profile | null>(null);
 
   const load = useCallback((s: Session) => {
     // getSession and onAuthStateChange both fire at startup; run one load at a time.
@@ -63,6 +70,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             syncError = `Apple Health sync failed: ${message(e, 'unknown error')}`;
           });
         setData(await loadUserData(s.user.id));
+        // The profile only decides whether to show the intro; if it can't load, don't block the app.
+        setProfile(await repo.loadProfile(s.user.id).catch(() => ({ onboardedAt: 'unknown', coachConsentAt: null })));
         setError(syncError);
       } catch (e) {
         setError(message(e, 'Could not load your data'));
@@ -119,6 +128,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         await supabase.auth.signOut();
         setData(null);
+        setProfile(null);
+        setMode('signed-out');
+      },
+
+      profile,
+      setOnboarded: async (done) => {
+        if (mode !== 'cloud' || !session) return;
+        const at = await repo.setOnboarded(session.user.id, done);
+        setProfile((p) => ({ coachConsentAt: p?.coachConsentAt ?? null, onboardedAt: at }));
+      },
+      deleteAccount: async () => {
+        if (mode !== 'cloud' || !session) throw new Error('Sign in to delete your account');
+        await repo.deleteAccount();
+        disconnectHealth(session.user.id);
+        // The server has already removed the user; just forget the session on this device.
+        await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+        setData(null);
+        setProfile(null);
         setMode('signed-out');
       },
 
@@ -182,7 +209,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }),
     // healthTick: re-read device-stored Health status after connect/disconnect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, session, data, error, refreshing, load, reload, healthTick],
+    [mode, session, data, error, refreshing, load, reload, healthTick, profile],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

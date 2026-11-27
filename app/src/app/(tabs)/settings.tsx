@@ -1,9 +1,13 @@
 import Constants from 'expo-constants';
+import { File, Paths } from 'expo-file-system';
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Alert, Platform, Share, View } from 'react-native';
 
 import { Button, Card, ErrorText, Screen, T } from '@/components/ui';
+import * as repo from '@/data/repo';
 import { useStore } from '@/data/store';
+import { PRIVACY_URL } from '@/lib/config';
 import { colors } from '@/theme';
 
 function ago(iso: string): string {
@@ -87,6 +91,90 @@ function AppleHealthCard() {
   );
 }
 
+function PrivacyCard() {
+  const { mode, session, setOnboarded, deleteAccount } = useStore();
+  const [busy, setBusy] = useState<'export' | 'delete' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const openPolicy = () => {
+    if (Platform.OS === 'web') window.open(PRIVACY_URL, '_blank');
+    else WebBrowser.openBrowserAsync(PRIVACY_URL);
+  };
+
+  const exportData = async () => {
+    if (!session) return;
+    setBusy('export');
+    setError(null);
+    try {
+      const json = JSON.stringify(await repo.exportUserData(session.user.id, session.user.email), null, 2);
+      const name = `stride-export-${new Date().toISOString().slice(0, 10)}.json`;
+      if (Platform.OS === 'web') {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+        a.download = name;
+        a.click();
+      } else {
+        const file = new File(Paths.cache, name);
+        if (file.exists) file.delete();
+        file.create();
+        file.write(json);
+        await Share.share({ url: file.uri, title: name });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not export your data');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const confirmDelete = () => {
+    const run = async () => {
+      setBusy('delete');
+      setError(null);
+      try {
+        await deleteAccount();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not delete your account');
+        setBusy(null);
+      }
+    };
+    const text =
+      'This permanently deletes your Stride account and everything in it: workouts, plans, sleep and recovery data, coach reviews and photos. It can’t be undone. Apple Health itself is not changed.';
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Delete your account?
+
+${text}`)) run();
+    } else
+      Alert.alert('Delete your account?', text, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete account', style: 'destructive', onPress: run },
+      ]);
+  };
+
+  return (
+    <Card>
+      <T variant="eyebrow">Privacy and data</T>
+      <T variant="small">
+        Your data belongs to you. Stride never sells it or uses it for advertising.
+      </T>
+      <Button label="Privacy policy" kind="secondary" onPress={openPolicy} />
+      {mode === 'cloud' ? (
+        <>
+          <Button label="Export my data" kind="secondary" onPress={exportData} busy={busy === 'export'} />
+          <Button
+            label="Show the intro again"
+            kind="secondary"
+            // Clearing the flag makes the tab layout open the intro.
+            onPress={() => setOnboarded(false).catch((e) => setError(e instanceof Error ? e.message : String(e)))}
+          />
+          <Button label="Delete my account" kind="secondary" onPress={confirmDelete} busy={busy === 'delete'} />
+        </>
+      ) : null}
+      <ErrorText>{error}</ErrorText>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { mode, session, signOut, data } = useStore();
   return (
@@ -110,6 +198,8 @@ export default function Settings() {
       </Card>
 
       <AppleHealthCard />
+
+      <PrivacyCard />
 
       <Card>
         <T variant="eyebrow">Stride web app</T>

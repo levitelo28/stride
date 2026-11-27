@@ -1,4 +1,4 @@
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -29,6 +29,8 @@ function initialForm(existing: Plan | null): GoalForm {
 
 export default function GoalScreen() {
   const { mode, data, replacePlan } = useStore();
+  // Opened from the first-run intro: return there after saving instead of jumping to Training.
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const [form, setForm] = useState<GoalForm>(() => initialForm(data?.plan ?? null));
   const [preview, setPreview] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +61,7 @@ export default function GoalScreen() {
     try {
       await replacePlan(preview);
       // Close the modal, then switch to the existing Training tab (replace would stack a second tab navigator).
+      if (from === 'onboarding') return close();
       if (router.canDismiss()) router.dismiss();
       router.navigate('/training');
     } catch (e) {

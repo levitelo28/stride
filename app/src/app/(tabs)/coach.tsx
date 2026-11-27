@@ -124,12 +124,14 @@ export default function Coach() {
           <T variant="h2">Get a weekly review from Stride’s AI coach</T>
           <T variant="muted">
             The coach reads a summary of the last six weeks: your goal, planned vs completed sessions, workout distances,
-            durations, effort ratings and notes, and average sleep. It tells you what’s going well, what to watch, and
-            can suggest plan changes that you approve one by one.
+            durations, heart rate, effort ratings and notes, average sleep, and resting heart rate and HRV against your
+            own baseline. It tells you what’s going well, what to watch, and can suggest plan changes that you approve
+            one by one.
           </T>
           <T variant="small">
-            The summary is sent to Anthropic (the maker of Claude) to write your review. Stride doesn’t use it for
-            advertising. You can turn the coach off at any time. It’s not medical advice.
+            The summary is sent to Anthropic (the maker of Claude) to write your review. It isn’t used for advertising,
+            and Anthropic doesn’t use it to train its models. You can turn the coach off at any time. It’s not medical
+            advice.
           </T>
           <Button label="Turn on the AI coach" onPress={() => consent(true)} busy={busy} />
         </Card>

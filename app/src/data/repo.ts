@@ -296,22 +296,23 @@ export async function setCoachConsent(userId: string, on: boolean): Promise<stri
   return consentAt;
 }
 
+/** Edge-function errors carry { error: "<message for the user>" } in the response body. */
+async function functionError(error: unknown, fallback: string): Promise<Error> {
+  const ctx = (error as { context?: unknown }).context;
+  if (ctx instanceof Response) {
+    try {
+      const body = (await ctx.json()) as { error?: string };
+      if (body.error) return new Error(body.error);
+    } catch {
+      // keep the fallback
+    }
+  }
+  return new Error(fallback);
+}
+
 export async function requestReview(input: CoachInput): Promise<SavedReview> {
   const { data, error } = await supabase.functions.invoke('coach', { body: { input } });
-  if (error) {
-    // Error responses carry { error: "<message for the user>" }.
-    let message = 'The coach is unavailable right now';
-    const ctx = (error as { context?: unknown }).context;
-    if (ctx instanceof Response) {
-      try {
-        const body = (await ctx.json()) as { error?: string };
-        if (body.error) message = body.error;
-      } catch {
-        // keep the default message
-      }
-    }
-    throw new Error(message);
-  }
+  if (error) throw await functionError(error, 'The coach is unavailable right now');
   const d = data as { review: CoachReview; created_at: string };
   return { review: d.review, createdAt: d.created_at };
 }
@@ -349,4 +350,66 @@ export async function writeHealth(userId: string, read: HealthRead): Promise<voi
       .upsert(metrics.slice(i, i + CHUNK), { onConflict: 'user_id,local_date,metric,source' });
     fail(error, 'Saving Health metrics');
   }
+}
+
+// ---- Account ----
+
+export interface Profile {
+  onboardedAt: string | null;
+  coachConsentAt: string | null;
+}
+
+export async function loadProfile(userId: string): Promise<Profile> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('onboarded_at,ai_coach_consent_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+  fail(error, 'Loading your profile');
+  return {
+    onboardedAt: (data?.onboarded_at as string | null) ?? null,
+    coachConsentAt: (data?.ai_coach_consent_at as string | null) ?? null,
+  };
+}
+
+/** Mark the first-run intro as finished (null shows it again). */
+export async function setOnboarded(userId: string, done: boolean): Promise<string | null> {
+  const at = done ? new Date().toISOString() : null;
+  const { error } = await supabase.from('profiles').upsert({ user_id: userId, onboarded_at: at }, { onConflict: 'user_id' });
+  fail(error, 'Saving your progress');
+  return at;
+}
+
+/** Tables holding a user's data, with the column that identifies the owner. */
+const EXPORT_TABLES = [
+  'profiles',
+  'activities',
+  'daily_metrics',
+  'plans',
+  'plan_sessions',
+  'coach_reviews',
+  'stride_user_state',
+  'stride_training_overrides',
+  'stride_runs',
+  'stride_meals',
+  'stride_sleep',
+  'stride_checkins',
+  'stride_strength_sessions',
+] as const;
+
+/** Everything Stride stores about the user, as one JSON-ready object (row-level security limits it to them). */
+export async function exportUserData(userId: string, email: string | undefined): Promise<Record<string, unknown>> {
+  const tables: Record<string, unknown[]> = {};
+  for (const table of EXPORT_TABLES)
+    tables[table] = await all(
+      (from, to) => supabase.from(table).select('*').eq('user_id', userId).range(from, to),
+      `Exporting ${table}`,
+    );
+  return { exported_at: new Date().toISOString(), account: { id: userId, email: email ?? null }, tables };
+}
+
+/** Permanently delete the account and all its data (server side), then sign out on this device. */
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.functions.invoke('delete-account', { body: { confirm: 'DELETE' } });
+  if (error) throw await functionError(error, 'Could not delete your account. Check your connection and try again.');
 }

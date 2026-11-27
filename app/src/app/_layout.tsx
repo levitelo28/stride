@@ -24,6 +24,7 @@ export default function RootLayout() {
           <Stack.Screen name="goal" options={{ presentation: 'modal' }} />
           <Stack.Screen name="session" options={{ presentation: 'modal' }} />
           <Stack.Screen name="log" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
         </Stack>
       </StoreProvider>
     </ThemeProvider>

@@ -14,9 +14,11 @@ const icon = (name: IconName) =>
   };
 
 export default function TabLayout() {
-  const { mode } = useStore();
+  const { mode, profile } = useStore();
   if (mode === 'loading') return <Loading />;
   if (mode === 'signed-out') return <Redirect href="/sign-in" />;
+  // New accounts see the intro once (profile is null until loaded; demo mode has none).
+  if (mode === 'cloud' && profile && !profile.onboardedAt) return <Redirect href="/onboarding" />;
 
   return (
     <Tabs
