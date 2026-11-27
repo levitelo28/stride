@@ -62,5 +62,8 @@ First iPhone build (needs the Apple Developer account):
 - ✅ Privacy policy live at https://stridehealth.netlify.app/privacy.html (Levi Teleshevsky, telachef@gmail.com), 2026-11-27.
 - ✅ Export verified on iPhone 2026-11-27.
 - ⏳ Not yet tested on device: deleting a throwaway account.
-- To do: App Store Connect app record, TestFlight build (`eas build --profile production` + `eas submit`), App Privacy answers, support URL.
+- ✅ App icon (Stride arrow) replaces Expo's placeholder.
+- ✅ App Store Connect app created (ID 6840148569); first production build (build 2) uploaded 2026-11-27 with `npx eas-cli@latest build --platform ios --profile production --auto-submit`.
+- ⏳ TestFlight internal testing group, install on iPhone.
+- To do before external testers / App Store: App Privacy answers, support URL, screenshots, description.
 
