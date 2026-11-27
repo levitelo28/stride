@@ -66,5 +66,6 @@ First iPhone build (needs the Apple Developer account):
 - ✅ App Store Connect app created (ID 6840148569); first production build (build 2) uploaded 2026-11-27 with `npx eas-cli@latest build --platform ios --profile production --auto-submit`.
 - Build 2 rejected on upload (ITMS-90683, missing NSHealthUpdateUsageDescription); fixed in build 3, uploaded 2026-11-27.
 - ✅ Build 3 installed on iPhone through TestFlight (internal testing), 2026-11-27.
+- ⏸ Sign-in emails for other testers (on hold until the week of 2026-11-30): Supabase's built-in email only reaches team members, so connect Gmail SMTP (telachef@gmail.com, smtp.gmail.com:465, Google app password entered by Levi in the Supabase dashboard), then brand the Magic Link and Confirm signup templates with a 6-digit code.
 - To do before external testers / App Store: App Privacy answers, support URL, screenshots, description.
 
