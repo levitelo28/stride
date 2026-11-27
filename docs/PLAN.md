@@ -44,7 +44,7 @@ Supabase Edge Functions (Deno, TypeScript)
 - **Anthropic API key:** platform.claude.com → API keys, with a monthly spend limit set.
 
 ## Apple Health status (milestone 4)
-Code is complete and tested off-device; it has **not yet run on an iPhone**.
+Code is complete. First iPhone development build installed and sign-in verified on device (2026-11-27); Apple Health sync on device is being tested.
 - `app/src/domain/health.ts`: maps workouts, sleep (Watch stages first, sources merged, naps excluded), resting HR and HRV. Unit-tested.
 - `app/src/health/index.ios.ts`: reads HealthKit via `@kingstinct/react-native-healthkit` (read-only; anchored workout sync with deletions; 30-day re-read of sleep and metrics).
 - Syncs on every app open once connected (Settings → Apple Health). The coach uses resting HR and HRV against your own baseline.
