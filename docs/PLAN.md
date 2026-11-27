@@ -33,7 +33,7 @@ Supabase Edge Functions (Deno, TypeScript)
 | 1 ✅ | Foundation | Expo app in `app/`, Evergreen design system, sign-in, Today/Training/Progress screens on real Supabase data; runs on web for quick testing | — |
 | 2 ✅ | Data model | New per-record tables (migrations reviewed before applying), import of the old JSON blob + Strava CSV | Approve migrations on production |
 | 3 ✅ | Goals and plans | v9 goal planner ported and tested; editable plan; logging | — |
-| 4 🔧 | Apple Health | Native HealthKit read of workouts, sleep, HRV and resting HR; background sync; dedup | Apple Developer account, Expo account, iPhone for testing |
+| 4 ✅ | Apple Health | Native HealthKit read of workouts, sleep, HRV and resting HR; background sync; dedup | Apple Developer account, Expo account, iPhone for testing |
 | 5 ✅ | Coach | Daily readiness, weekly review, approve-able plan changes, chat | Anthropic API key (stored as a Supabase secret) |
 | 6 | Launch prep | Onboarding, consent, privacy policy, export/delete account, TestFlight beta | App Store listing details |
 | 7 | Android | Health Connect, Play Store | Google Play account ($25 once) |
@@ -44,7 +44,9 @@ Supabase Edge Functions (Deno, TypeScript)
 - **Anthropic API key:** platform.claude.com → API keys, with a monthly spend limit set.
 
 ## Apple Health status (milestone 4)
-Code is complete. First iPhone development build installed and sign-in verified on device (2026-11-27); Apple Health sync on device is being tested.
+Verified on an iPhone on 2026-11-27: sign-in by emailed link, and a one-year import of 51 workouts (Garmin Connect, Strava, WHOOP) with distances and start times, plus sleep and resting HR. Copies of one run from several apps are stored separately and merged when shown.
+
+Known gap: average heart rate stays empty for Garmin/Strava workouts, because those apps don't attach heart-rate statistics to the workout. Reading heart-rate samples for each workout's time window would fill it.
 - `app/src/domain/health.ts`: maps workouts, sleep (Watch stages first, sources merged, naps excluded), resting HR and HRV. Unit-tested.
 - `app/src/health/index.ios.ts`: reads HealthKit via `@kingstinct/react-native-healthkit` (read-only; anchored workout sync with deletions; 30-day re-read of sleep and metrics).
 - Syncs on every app open once connected (Settings → Apple Health). The coach uses resting HR and HRV against your own baseline.
