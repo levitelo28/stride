@@ -60,6 +60,7 @@ First iPhone build (needs the Apple Developer account):
 - ✅ First-run intro (goal, Apple Health, AI-coach consent), verified on iPhone 2026-11-27.
 - ✅ Settings → Privacy and data: export as JSON, delete account (`delete-account` function deployed), show intro again.
 - ✅ Privacy policy live at https://stridehealth.netlify.app/privacy.html (Levi Teleshevsky, telachef@gmail.com), 2026-11-27.
-- ⏳ Not yet tested on device: export, and deleting a throwaway account.
+- ✅ Export verified on iPhone 2026-11-27.
+- ⏳ Not yet tested on device: deleting a throwaway account.
 - To do: App Store Connect app record, TestFlight build (`eas build --profile production` + `eas submit`), App Privacy answers, support URL.
 
