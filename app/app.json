@@ -43,7 +43,7 @@
         "@kingstinct/react-native-healthkit",
         {
           "NSHealthShareUsageDescription": "Stride reads your workouts, sleep, resting heart rate and heart rate variability to track your training and recovery and to personalise your coaching.",
-          "NSHealthUpdateUsageDescription": false,
+          "NSHealthUpdateUsageDescription": "Stride doesn’t save anything to Apple Health. It only reads your workouts, sleep, resting heart rate and heart rate variability to track your training and recovery.",
           "background": false
         }
       ],
