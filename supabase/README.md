@@ -14,7 +14,7 @@
 - `migrations/20261126010000_replace_active_plan.sql` — **applied 2026-11-26.** Adds `stride_replace_active_plan(goal, warnings, sessions)`, which archives the active plan and saves a new one in a single transaction. It runs as the caller (security invoker), so RLS still applies; only signed-in users can call it. A rolled-back test checked replacement, atomicity on bad input, and isolation between users before it was applied.
 - `migrations/20261126020000_coach.sql` — **applied 2026-11-26.** Adds `profiles` (AI-coach consent) and `coach_reviews` (saved weekly reviews; owners can read, add and delete but not edit them). Tested with a rolled-back RLS test first.
 
-- `migrations/20261127000000_onboarding.sql` — **not applied yet.** Adds `profiles.onboarded_at` so the first-run intro shows once per account. Until it's applied the app skips the intro.
+- `migrations/20261127000000_onboarding.sql` — **applied 2026-11-27** (after a rolled-back test). Adds `profiles.onboarded_at` so the first-run intro shows once per account.
 
 ## Edge functions
 - `functions/coach` — **deployed 2026-11-26.** `POST { input }`, where `input` is the training summary built by the app (`app/src/domain/coach.ts`). It requires a signed-in user with coach consent and allows at most 8 reviews per user per day. It calls `claude-opus-5-5` with structured JSON output and server-side refusal fallback, then saves the review. The prompt and schema are in `prompt.ts`, unit-tested from the app.
@@ -22,5 +22,5 @@
   - Deploy: `npx supabase functions deploy coach --project-ref tlslogvdbwjttfehesrr --use-api`
 
 The new app copies the v9 record into these tables on every load (`app/src/domain/sync.ts`). The copy is idempotent: rows are keyed by `v9:<id>` external IDs, and plans created in the new app are never overwritten.
-- `functions/delete-account` — **not deployed yet.** `POST { confirm: "DELETE" }` from a signed-in user empties their `meal-photos/<user id>/` folder, then deletes the auth user; every table cascades from `auth.users`, so all their rows go too. Uses the built-in `SUPABASE_SERVICE_ROLE_KEY` only after identifying the caller from their own token.
+- `functions/delete-account` — **deployed 2026-11-27.** `POST { confirm: "DELETE" }` from a signed-in user empties their `meal-photos/<user id>/` folder, then deletes the auth user; every table cascades from `auth.users`, so all their rows go too. Uses the built-in `SUPABASE_SERVICE_ROLE_KEY` only after identifying the caller from their own token.
   - Deploy: `npx supabase functions deploy delete-account --project-ref tlslogvdbwjttfehesrr --use-api`
