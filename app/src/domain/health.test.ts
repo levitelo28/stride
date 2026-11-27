@@ -42,9 +42,11 @@ test('workout distance in "meters" (the library unit), start time and average he
     endDate: at(20, 7, 18),
     totalDistance: { quantity: 3010, unit: 'meters' },
     avgHr: 151.6,
+    maxHr: 178.2,
   });
   assert.equal(run.distanceKm, 3.01);
   assert.equal(run.avgHr, 152);
+  assert.equal(run.maxHr, 178);
   assert.equal(run.startedAt, at(20, 7).toISOString());
 });
 

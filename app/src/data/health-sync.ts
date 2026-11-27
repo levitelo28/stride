@@ -9,8 +9,9 @@ const key = (userId: string, name: string) => `stride.health.${name}.${userId}`;
  * Bump when Stride asks Health for more data types or reads workouts differently. Devices on an older
  * version see Apple's permission sheet once more (only new types are shown) and re-read their workouts.
  * v2: distance and heart-rate types, so workouts come with their distance, start time and average HR.
+ * v3: heart rate from Health's readings during each workout (Garmin/Strava workouts don't carry it).
  */
-const READ_VERSION = '2';
+const READ_VERSION = '3';
 
 function get(k: string): string | null {
   try {

@@ -20,6 +20,7 @@ export interface HealthWorkout {
   totalEnergyBurned?: HealthQuantity;
   /** Average heart rate during the workout (bpm), from the workout's statistics. */
   avgHr?: number;
+  maxHr?: number;
   sourceName?: string;
 }
 
@@ -105,6 +106,7 @@ export function workoutToActivity(w: HealthWorkout): Activity {
     distanceKm: km(w.totalDistance),
     durationSec: durSec > 0 ? Math.round(durSec) : undefined,
     avgHr: w.avgHr && w.avgHr >= 20 && w.avgHr <= 250 ? Math.round(w.avgHr) : undefined,
+    maxHr: w.maxHr && w.maxHr >= 20 && w.maxHr <= 250 ? Math.round(w.maxHr) : undefined,
     source: 'apple_health',
   };
 }

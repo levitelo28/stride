@@ -14,7 +14,7 @@ export function sessionSummary(s: PlannedSession): string {
 }
 
 export function activitySummary(a: Activity): string {
-  return [a.distanceKm ? `${a.distanceKm.toFixed(1)} km` : undefined, formatDuration(a.durationSec), formatPace(a.distanceKm, a.durationSec)]
+  return [a.distanceKm ? `${a.distanceKm.toFixed(1)} km` : undefined, formatDuration(a.durationSec), formatPace(a.distanceKm, a.durationSec), a.avgHr ? `${a.avgHr} bpm` : undefined]
     .filter(Boolean)
     .join(' · ');
 }

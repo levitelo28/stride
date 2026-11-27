@@ -16,6 +16,7 @@ export interface ActivityRow {
   duration_sec: number | null;
   distance_km: number | string | null; // numeric columns come back as strings from PostgREST
   avg_hr: number | null;
+  max_hr?: number | null;
   rpe: number | null;
   notes: string | null;
 }
@@ -78,6 +79,7 @@ export function activityToRow(a: Activity, userId: string, externalId: string | 
     duration_sec: a.durationSec && a.durationSec > 0 && a.durationSec < 172800 ? Math.round(a.durationSec) : null,
     distance_km: a.distanceKm && a.distanceKm > 0 && a.distanceKm < 1000 ? Math.round(a.distanceKm * 1000) / 1000 : null,
     avg_hr: a.avgHr && a.avgHr >= 20 && a.avgHr <= 250 ? Math.round(a.avgHr) : null,
+    max_hr: a.maxHr && a.maxHr >= 20 && a.maxHr <= 250 ? Math.round(a.maxHr) : null,
     rpe: clampInt(a.rpe, 1, 10),
     notes: a.notes?.slice(0, 2000) ?? null,
   };
@@ -93,6 +95,7 @@ export function activityFromRow(r: ActivityRow): Activity {
     distanceKm: n(r.distance_km),
     durationSec: r.duration_sec ?? undefined,
     avgHr: r.avg_hr ?? undefined,
+    maxHr: r.max_hr ?? undefined,
     rpe: r.rpe ?? undefined,
     notes: r.notes ?? undefined,
     source: r.source,

@@ -15,6 +15,7 @@ export interface Activity {
   distanceKm?: number;
   durationSec?: number;
   avgHr?: number;
+  maxHr?: number;
   rpe?: number;
   notes?: string;
   source: ActivitySource;

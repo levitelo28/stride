@@ -22,7 +22,16 @@ export interface CoachInput {
   weeks: CoachWeek[]; // oldest first, ending with the current week
   load: { last7Km: number; weeklyAvg28Km: number; ratio: number | null };
   sleep: { avg7: number | null; avg28: number | null; nights7: number };
-  recent: { date: ISODate; kind: string; km: number | null; minutes: number | null; rpe: number | null; notes: string | null }[];
+  recent: {
+    date: ISODate;
+    kind: string;
+    km: number | null;
+    minutes: number | null;
+    /** Average heart rate during the workout (bpm), when Health has it. */
+    avg_hr: number | null;
+    rpe: number | null;
+    notes: string | null;
+  }[];
   upcoming: { date: ISODate; kind: SessionKind; label: string; km: number | null; minutes: number | null }[];
   insights: { id: string; tone: Insight['tone']; title: string }[];
   /** Apple Health recovery signals: 7-day averages vs the prior 28-day baseline. Null without enough data. */
@@ -187,6 +196,7 @@ export function buildCoachInput(data: UserData, today: ISODate): CoachInput {
         kind: a.kind,
         km: a.distanceKm ? r1(a.distanceKm) : null,
         minutes: a.durationSec ? Math.round(a.durationSec / 60) : null,
+        avg_hr: a.avgHr ?? null,
         rpe: a.rpe ?? null,
         notes: a.notes?.slice(0, 200) ?? null,
       })),

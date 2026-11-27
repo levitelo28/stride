@@ -3,6 +3,7 @@ import {
   isHealthDataAvailable,
   queryCategorySamples,
   queryQuantitySamples,
+  queryStatisticsForQuantity,
   queryWorkoutSamplesWithAnchor,
   requestAuthorization,
 } from '@kingstinct/react-native-healthkit';
@@ -45,6 +46,29 @@ export async function connectHealth(): Promise<boolean> {
   return requestAuthorization({ toRead: READ });
 }
 
+type HrStats = { averageQuantity?: { quantity: number }; maximumQuantity?: { quantity: number } } | undefined;
+
+/**
+ * Average and peak heart rate during a workout. Apple Watch workouts carry these as statistics; apps that
+ * write finished workouts (Garmin Connect, Strava) don't, so fall back to the heart-rate readings in Health
+ * between the workout's start and end (HealthKit merges overlapping sources itself).
+ */
+async function workoutHeartRate(
+  start: Date,
+  end: Date,
+  fromWorkout: () => Promise<HrStats>,
+): Promise<{ avg?: number; max?: number } | undefined> {
+  const pick = (s: HrStats) =>
+    s?.averageQuantity?.quantity ? { avg: s.averageQuantity.quantity, max: s.maximumQuantity?.quantity } : undefined;
+  const own = pick(await fromWorkout().catch(() => undefined));
+  if (own) return own;
+  const window = await queryStatisticsForQuantity('HKQuantityTypeIdentifierHeartRate', ['discreteAverage', 'discreteMax'], {
+    unit: 'count/min',
+    filter: { date: { startDate: start, endDate: end } },
+  }).catch(() => undefined);
+  return pick(window);
+}
+
 export async function readHealth(anchor: string | null): Promise<HealthRead> {
   const now = new Date();
   const since = (days: number) => new Date(now.getTime() - days * 86_400_000);
@@ -70,7 +94,9 @@ export async function readHealth(anchor: string | null): Promise<HealthRead> {
         !w.totalDistance && distanceType
           ? w.getStatistic(distanceType as Parameters<typeof w.getStatistic>[0], 'm').catch(() => undefined)
           : undefined,
-        w.getStatistic('HKQuantityTypeIdentifierHeartRate', 'count/min').catch(() => undefined),
+        workoutHeartRate(w.startDate, w.endDate, () =>
+          w.getStatistic('HKQuantityTypeIdentifierHeartRate', 'count/min'),
+        ),
       ]);
       return workoutToActivity({
         uuid: w.uuid,
@@ -80,7 +106,8 @@ export async function readHealth(anchor: string | null): Promise<HealthRead> {
         duration: w.duration,
         totalDistance: w.totalDistance ?? (distance?.sumQuantity ? { quantity: distance.sumQuantity.quantity, unit: 'm' } : undefined),
         totalEnergyBurned: w.totalEnergyBurned,
-        avgHr: heart?.averageQuantity?.quantity,
+        avgHr: heart?.avg,
+        maxHr: heart?.max,
         sourceName: w.sourceRevision?.source?.name,
       });
     }),
